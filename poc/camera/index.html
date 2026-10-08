@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#000000">
+  <title>PoC Kamera Ortodonti – Mode A</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main id="stage">
+    <video id="video" playsinline muted autoplay></video>
+    <svg id="overlay" aria-hidden="true"></svg>
+    <p id="rotateHint" hidden></p>
+    <div id="flash" aria-hidden="true"></div>
+  </main>
+
+  <header id="topbar">
+    <button id="whoBtn" class="who" type="button" aria-label="Ganti subjek atau perangkat">
+      <span id="whoText">Belum diisi</span>
+    </button>
+    <div class="slotHead">
+      <h1 id="slotTitle">Memuat slot</h1>
+      <p id="slotCheck"></p>
+    </div>
+    <button id="menuBtn" type="button">Pengaturan</button>
+  </header>
+
+  <div id="level" hidden>
+    <div class="track"><div id="bubble"></div></div>
+    <span id="levelText"></span>
+  </div>
+
+  <footer id="bottombar">
+    <nav id="slotChips" aria-label="Pilih slot foto"></nav>
+    <div class="shutterRow">
+      <img id="lastThumb" alt="Foto terakhir" hidden>
+      <button id="shutter" type="button" aria-label="Ambil foto" disabled></button>
+      <p id="lastInfo">Belum ada foto</p>
+    </div>
+  </footer>
+
+  <section id="startScreen">
+    <div class="startCard">
+      <h2>Uji kamera mode A</h2>
+      <p>Kamera browser dengan garis bantu. Foto hanya disimpan di HP ini sampai Anda mengekspornya sebagai ZIP.</p>
+      <label>ID subjek (relawan, bukan pasien)
+        <input id="subject" autocomplete="off" autocapitalize="characters" placeholder="mis. R01">
+      </label>
+      <label>Perangkat
+        <select id="deviceLabel">
+          <option>iPhone 13 Pro Max</option>
+          <option>iPhone 17 Pro Max</option>
+          <option>Lainnya</option>
+        </select>
+      </label>
+      <button id="startBtn" class="primary" type="button">Mulai kamera</button>
+      <p id="startNote" class="muted"></p>
+    </div>
+  </section>
+
+  <dialog id="panel">
+    <form method="dialog" class="panelHead">
+      <h2>Pengaturan dan diagnostik</h2>
+      <button type="submit">Tutup</button>
+    </form>
+
+    <fieldset>
+      <legend>Kamera</legend>
+      <label>Lensa / kamera
+        <select id="cameraSelect"></select>
+      </label>
+      <label>Resolusi yang diminta
+        <select id="preset"></select>
+      </label>
+      <label id="zoomRow" hidden>
+        <span>Zoom <output id="zoomOut"></output></span>
+        <input id="zoom" type="range">
+      </label>
+      <label id="focusRow" hidden>Mode fokus
+        <select id="focusMode"></select>
+      </label>
+      <label id="torchRow" class="inline" hidden>
+        <input id="torch" type="checkbox"> Senter
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Garis bantu</legend>
+      <label>
+        <span>Opasitas <output id="opacityOut"></output></span>
+        <input id="opacity" type="range" min="0.2" max="1" step="0.05" value="0.9">
+      </label>
+      <button id="levelBtn" type="button">Aktifkan waterpass</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Rekap subjek dan perangkat ini</legend>
+      <table id="summary"></table>
+    </fieldset>
+
+    <fieldset>
+      <legend>Ekspor</legend>
+      <label class="inline"><input id="onlySubject" type="checkbox" checked> Hanya subjek ini</label>
+      <button id="prepZip" type="button">Siapkan ZIP</button>
+      <button id="shareZip" class="primary" type="button" hidden>Bagikan ZIP</button>
+      <p id="zipInfo" class="muted"></p>
+      <button id="clearSubject" class="danger" type="button">Hapus foto subjek ini dari HP</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Diagnostik</legend>
+      <button id="copyDiag" type="button">Salin diagnostik</button>
+      <pre id="diag"></pre>
+    </fieldset>
+  </dialog>
+
+  <div id="toast" role="status" hidden></div>
+</body>
+</html>
