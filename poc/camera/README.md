@@ -24,7 +24,7 @@ waterpass, panel diagnostik, dan ekspor ZIP. Tidak ada server dan database; foto
 - Bila kunci rotasi iOS aktif, sensor gravitasi mendeteksi posisi HP: garis bantu diputar 90° dan foto
   disimpan tegak (`rotation_applied` di log). Izin sensor diminta saat **Mulai kamera**.
   Kalibrasi otomatis butuh HP dipegang portrait sekali setelah mulai.
-- `slots.v2.json` versi 2.1.0. Generator pindah ke `tools/gen_slots.py`; CI menolak JSON yang tidak sama dengan hasil generator.
+- `slots.v2.json` versi 2.1.0. Generator pindah ke `tools/gen_slots.py`; jalankan ulang setelah mengubahnya dan commit JSON hasilnya.
 
 ## Perubahan v2 (masukan dokter setelah uji pertama)
 
@@ -39,12 +39,9 @@ waterpass, panel diagnostik, dan ekspor ZIP. Tidak ada server dan database; foto
 
 ## Deploy (wajib HTTPS)
 
-Kamera web di iPhone hanya jalan di HTTPS. Pilih salah satu:
-
-- **Cloudflare Pages / Netlify / Vercel** yang terhubung ke repo GitHub: root directory `poc/camera`,
-  build command kosong, output directory `.` (atau `poc/camera`). Preview per pull request otomatis.
-- **GitHub Pages** lewat workflow `.github/workflows/poc-pages.yml`. Di repo privat, Pages biasanya butuh
-  paket GitHub berbayar (perlu dicek di Settings > Pages).
+Kamera web di iPhone hanya jalan di HTTPS. PoC ini di-deploy lewat **Vercel** yang terhubung ke repo GitHub:
+root directory `poc/camera`, build command kosong. Setiap push ke `main` otomatis deploy; preview per pull request.
+Biarkan Vercel Authentication aktif agar URL PoC tidak terbuka publik.
 
 Tidak ada build step. Satu-satunya dependensi eksternal adalah JSZip dari cdnjs.
 
