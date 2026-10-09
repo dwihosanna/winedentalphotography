@@ -1,4 +1,5 @@
-// PoC kamera ortodonti – Mode A (getUserMedia + overlay garis bantu)
+// PoC kamera ortodonti – Mode A (getUserMedia + overlay garis bantu) – v2
+// v2: garis bantu gigi/wajah (slots.v2.json), mode cermin, galeri.
 // Tanpa server dan tanpa database: foto + log disimpan di IndexedDB HP ini,
 // lalu diekspor sebagai ZIP (photos/*.jpg, log.csv, log.json).
 
@@ -9,7 +10,9 @@ const el = Object.fromEntries([
   'startScreen', 'subject', 'deviceLabel', 'startBtn', 'startNote', 'panel', 'cameraSelect', 'preset',
   'zoomRow', 'zoom', 'zoomOut', 'focusRow', 'focusMode', 'torchRow', 'torch', 'opacity', 'opacityOut',
   'levelBtn', 'summary', 'onlySubject', 'prepZip', 'shareZip', 'zipInfo', 'clearSubject', 'copyDiag',
-  'diag', 'toast',
+  'diag', 'toast', 'galleryBtn', 'galleryLabel', 'mirrorBtn', 'gallery', 'galScope', 'galSlot', 'galClose',
+  'galBody', 'viewer', 'viewClose', 'viewTitle', 'viewDelete', 'viewStage', 'viewImg', 'viewPrev', 'viewMeta',
+  'viewNext',
 ].map((id) => [id, $(id)]));
 
 const PRESETS = {
@@ -22,6 +25,8 @@ const LEVEL_TOLERANCE = { roll: 2, pitch: 3 }; // derajat, usulan awal
 const TARGET_REPS = 3;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const PREF_KEY = 'poc-camera-prefs';
+const SLOTS_FILE = 'slots.v2.json';
+const THUMB_WIDTH = 360;
 
 const state = {
   slotsVersion: '',
@@ -37,6 +42,8 @@ const state = {
   zip: null,
   lastUrl: null,
   level: { on: false, roll: null, pitch: null, g: null },
+  mirrorBySlot: {},     // status tombol Cermin per slot (default dari slots.v2.json)
+  gallery: { list: [], index: -1, urls: [], viewUrl: null },
 };
 
 /* ---------- Penyimpanan lokal (IndexedDB) ---------- */
@@ -45,20 +52,23 @@ const db = {
   h: null,
   open() {
     return new Promise((resolve, reject) => {
-      const req = indexedDB.open('poc-camera', 1);
+      const req = indexedDB.open('poc-camera', 2);
       req.onupgradeneeded = () => {
-        req.result.createObjectStore('meta', { keyPath: 'id' });
-        req.result.createObjectStore('files', { keyPath: 'id' });
+        const d = req.result;
+        for (const name of ['meta', 'files', 'thumbs']) {
+          if (!d.objectStoreNames.contains(name)) d.createObjectStore(name, { keyPath: 'id' });
+        }
       };
       req.onsuccess = () => { this.h = req.result; resolve(); };
       req.onerror = () => reject(req.error);
     });
   },
-  addShot(meta, data) {
+  addShot(meta, data, thumb) {
     return new Promise((resolve, reject) => {
-      const tx = this.h.transaction(['meta', 'files'], 'readwrite');
+      const tx = this.h.transaction(['meta', 'files', 'thumbs'], 'readwrite');
       tx.objectStore('meta').put(meta);
       tx.objectStore('files').put({ id: meta.id, data, type: 'image/jpeg' });
+      if (thumb) tx.objectStore('thumbs').put({ id: meta.id, data: thumb, type: 'image/jpeg' });
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error || new Error('Transaksi dibatalkan (penyimpanan penuh?)'));
@@ -70,12 +80,19 @@ const db = {
   file(id) {
     return asPromise(this.h.transaction('files').objectStore('files').get(id));
   },
+  thumb(id) {
+    return asPromise(this.h.transaction('thumbs').objectStore('thumbs').get(id));
+  },
+  putThumb(id, data) {
+    return asPromise(this.h.transaction('thumbs', 'readwrite').objectStore('thumbs').put({ id, data, type: 'image/jpeg' }));
+  },
   remove(ids) {
     return new Promise((resolve, reject) => {
-      const tx = this.h.transaction(['meta', 'files'], 'readwrite');
+      const tx = this.h.transaction(['meta', 'files', 'thumbs'], 'readwrite');
       for (const id of ids) {
         tx.objectStore('meta').delete(id);
         tx.objectStore('files').delete(id);
+        tx.objectStore('thumbs').delete(id);
       }
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
@@ -108,14 +125,15 @@ async function init() {
   }
 
   try {
-    const res = await fetch('slots.v1.json', { cache: 'no-store' });
+    const res = await fetch(SLOTS_FILE, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     state.slots = json.slots;
     state.slotsVersion = json.version;
+    for (const s of state.slots) state.mirrorBySlot[s.code] = !!s.mirror?.default;
   } catch (e) {
     el.startBtn.disabled = true;
-    el.startNote.textContent = `File slots.v1.json gagal dimuat (${e.message}). Pastikan file ada di folder yang sama dengan index.html.`;
+    el.startNote.textContent = `File ${SLOTS_FILE} gagal dimuat (${e.message}). Pastikan file ada di folder yang sama dengan index.html.`;
     return;
   }
 
@@ -128,6 +146,7 @@ async function init() {
 
   selectSlot(state.slots[0].code);
   renderChips();
+  updateGalleryButton();
   bind();
 }
 
@@ -144,6 +163,19 @@ function bind() {
     el.panel.showModal();
   });
   el.shutter.addEventListener('click', capture);
+  el.mirrorBtn.addEventListener('click', () => {
+    state.mirrorBySlot[state.slot.code] = !state.mirrorBySlot[state.slot.code];
+    applyMirrorPreview();
+  });
+  el.galleryBtn.addEventListener('click', openGallery);
+  el.galClose.addEventListener('click', closeGallery);
+  el.galScope.addEventListener('change', renderGallery);
+  el.galSlot.addEventListener('change', renderGallery);
+  el.viewClose.addEventListener('click', closeViewer);
+  el.viewPrev.addEventListener('click', () => showInViewer(state.gallery.index - 1));
+  el.viewNext.addEventListener('click', () => showInViewer(state.gallery.index + 1));
+  el.viewDelete.addEventListener('click', deleteCurrent);
+  bindSwipe(el.viewStage);
   el.cameraSelect.addEventListener('change', startCamera);
   el.preset.addEventListener('change', () => { savePrefs(); startCamera(); });
   el.zoom.addEventListener('input', () => { el.zoomOut.value = Number(el.zoom.value).toFixed(2); });
@@ -293,7 +325,23 @@ function selectSlot(code) {
   el.slotCheck.textContent = state.slot.checklist.join('; ');
   for (const b of el.slotChips.children) b.setAttribute('aria-pressed', String(b.dataset.code === code));
   el.level.hidden = !(state.level.on && state.slot.level);
+  applyMirrorPreview();
   layoutOverlay();
+}
+
+/* Mode cermin: preview dibalik agar tampak seperti foto akhir; capture memakai balikan yang sama. */
+function mirrorAxis() {
+  const m = state.slot?.mirror;
+  return m && state.mirrorBySlot[state.slot.code] ? m.axis : null;
+}
+
+function applyMirrorPreview() {
+  const m = state.slot?.mirror;
+  el.mirrorBtn.hidden = !m;
+  const axis = mirrorAxis();
+  el.mirrorBtn.setAttribute('aria-pressed', String(!!axis));
+  el.mirrorBtn.textContent = axis ? 'Cermin: aktif' : 'Cermin: mati';
+  el.video.style.transform = axis === 'vertical' ? 'scaleY(-1)' : axis === 'horizontal' ? 'scaleX(-1)' : '';
 }
 
 function renderChips() {
@@ -304,9 +352,10 @@ function renderChips() {
     b.dataset.code = s.code;
     b.setAttribute('aria-pressed', String(state.slot?.code === s.code));
     const n = counts[s.code] || 0;
-    b.classList.toggle('done', n >= TARGET_REPS);
+    b.classList.toggle('done', s.required && n >= TARGET_REPS);
+    b.classList.toggle('optional', !s.required);
     b.append(Object.assign(document.createElement('span'), { textContent: s.code }));
-    b.append(Object.assign(document.createElement('small'), { textContent: `${n}/${TARGET_REPS}` }));
+    b.append(Object.assign(document.createElement('small'), { textContent: s.required ? `${n}/${TARGET_REPS}` : `${n} foto` }));
     b.addEventListener('click', () => selectSlot(s.code));
     return b;
   }));
@@ -334,7 +383,7 @@ function layoutOverlay() {
 
   const wantLandscape = state.slot.orientation === 'landscape';
   el.rotateHint.textContent = `Putar HP ke posisi ${wantLandscape ? 'landscape' : 'portrait'} untuk slot ini.`;
-  el.rotateHint.hidden = wantLandscape === (vw > vh);
+  el.rotateHint.hidden = state.slot.orientation === 'any' || wantLandscape === (vw > vh);
 }
 
 function drawShapes(shapes, w, h) {
@@ -345,6 +394,8 @@ function drawShapes(shapes, w, h) {
     else if (sh.t === 'ellipse') node = svg('ellipse', { cx: sh.cx * w, cy: sh.cy * h, rx: sh.rx * w, ry: sh.ry * h });
     else if (sh.t === 'rect') node = svg('rect', { x: sh.x * w, y: sh.y * h, width: sh.w * w, height: sh.h * h, rx: 8 });
     else if (sh.t === 'polyline') node = svg('polyline', { points: sh.points.map(([x, y]) => `${x * w},${y * h}`).join(' ') });
+    else if (sh.t === 'art') { out.push(drawArt(sh, w, h)); continue; }
+    else if (sh.t === 'corners') { out.push(drawCorners(sh, w, h)); continue; }
     else continue;
     node.setAttribute('class', sh.dash ? 'guide dash' : 'guide');
     out.push(node);
@@ -356,6 +407,48 @@ function drawShapes(shapes, w, h) {
     }
   }
   return out;
+}
+
+let maskSeq = 0;
+/* Gambar garis bantu (gigi/kepala) di viewBox sendiri, diskalakan proporsional ke dalam 'box'. */
+function drawArt(sh, w, h) {
+  const [bx, by, bw, bh] = sh.box;
+  const root = svg('svg', {
+    x: bx * w, y: by * h, width: bw * w, height: bh * h,
+    viewBox: sh.viewBox, preserveAspectRatio: 'xMidYMid meet', overflow: 'visible',
+  });
+  const defs = svg('defs', {});
+  root.append(defs);
+  const byId = Object.fromEntries(sh.layers.map((l) => [l.id, l]));
+  for (const layer of sh.layers) {
+    const group = svg('g', {});
+    group.setAttribute('class', 'guide art');
+    const cover = layer.maskBy && byId[layer.maskBy];
+    if (cover) {
+      // Lapisan ini disembunyikan di bawah lapisan lain (gigi bawah di belakang gigi atas).
+      const id = `mask${++maskSeq}`;
+      const big = { x: -1e5, y: -1e5, width: 2e5, height: 2e5 };
+      const mask = svg('mask', { id, maskUnits: 'userSpaceOnUse', ...big });
+      mask.append(svg('rect', { ...big, fill: 'white' }));
+      for (const d of cover.paths) mask.append(svg('path', { d, fill: 'black', stroke: 'black', 'stroke-width': 2 }));
+      defs.append(mask);
+      group.setAttribute('mask', `url(#${id})`);
+    }
+    for (const d of layer.paths) group.append(svg('path', { d, 'vector-effect': 'non-scaling-stroke' }));
+    root.append(group);
+  }
+  return root;
+}
+
+function drawCorners(sh, w, h) {
+  const [bx, by, bw, bh] = sh.box;
+  const x0 = bx * w, y0 = by * h, x1 = (bx + bw) * w, y1 = (by + bh) * h;
+  const L = Math.min(w, h) * 0.06;
+  const d = `M${x0} ${y0 + L}V${y0}H${x0 + L}M${x1 - L} ${y0}H${x1}V${y0 + L}`
+    + `M${x1} ${y1 - L}V${y1}H${x1 - L}M${x0 + L} ${y1}H${x0}V${y1 - L}`;
+  const p = svg('path', { d });
+  p.setAttribute('class', 'corner');
+  return p;
 }
 
 function svg(tag, attrs) {
@@ -384,16 +477,21 @@ async function capture() {
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
-    canvas.getContext('2d').drawImage(v, 0, 0, w, h);
+    const ctx = canvas.getContext('2d');
+    const axis = mirrorAxis();
+    if (axis === 'horizontal') { ctx.translate(w, 0); ctx.scale(-1, 1); }
+    if (axis === 'vertical') { ctx.translate(0, h); ctx.scale(1, -1); }
+    ctx.drawImage(v, 0, 0, w, h);
     const blob = await new Promise((resolve, reject) =>
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Gagal membuat JPEG'))), 'image/jpeg', 0.95));
     const captureMs = Math.round(performance.now() - t0);
     const data = await blob.arrayBuffer(); // ArrayBuffer lebih aman di IndexedDB iOS daripada Blob
+    const thumb = await (await makeThumb(canvas)).arrayBuffer();
 
     const subject = currentSubject();
     const device = el.deviceLabel.value;
     const slot = state.slot;
-    const rep = (countsFor(subject, device)[slot.code] || 0) + 1;
+    const rep = nextRep(subject, device, slot.code);
     const now = new Date();
     const settings = state.track.getSettings();
 
@@ -421,7 +519,7 @@ async function capture() {
       level_roll: round1(state.level.roll),
       level_pitch: round1(state.level.pitch),
       level_ok: state.level.on && slot.level ? levelOk() : null,
-      mirror_required: slot.mirror,
+      mirror_applied: axis,
       since_slot_open_ms: Math.round(performance.now() - state.slotOpenedAt),
       capture_ms: captureMs,
       standalone: isStandalone(),
@@ -430,9 +528,9 @@ async function capture() {
       user_agent: navigator.userAgent,
     };
 
-    await db.addShot(meta, data);
+    await db.addShot(meta, data, thumb);
     state.metas.push(meta);
-    showLast(blob, meta);
+    showLast(new Blob([thumb], { type: 'image/jpeg' }), meta);
     flash();
     renderChips();
     state.slotOpenedAt = performance.now();
@@ -448,7 +546,27 @@ function showLast(blob, meta) {
   state.lastUrl = URL.createObjectURL(blob);
   el.lastThumb.src = state.lastUrl;
   el.lastThumb.hidden = false;
+  el.galleryLabel.hidden = true;
   el.lastInfo.textContent = `${meta.slot} ke-${meta.rep}\n${meta.width} × ${meta.height}, ${(meta.file_bytes / 1e6).toFixed(1)} MB`;
+}
+
+function makeThumb(source) {
+  const sw = source.width, sh = source.height;
+  const scale = Math.min(1, THUMB_WIDTH / Math.max(sw, sh));
+  const c = document.createElement('canvas');
+  c.width = Math.round(sw * scale);
+  c.height = Math.round(sh * scale);
+  c.getContext('2d').drawImage(source, 0, 0, c.width, c.height);
+  return new Promise((resolve, reject) =>
+    c.toBlob((b) => (b ? resolve(b) : reject(new Error('Gagal membuat thumbnail'))), 'image/jpeg', 0.8));
+}
+
+function nextRep(subject, device, code) {
+  let max = 0;
+  for (const m of state.metas) {
+    if (m.subject === subject && m.device_label === device && m.slot === code && m.mode === 'A') max = Math.max(max, m.rep);
+  }
+  return max + 1;
 }
 
 function flash() {
@@ -522,7 +640,7 @@ function screenAngle() {
 const CSV_COLUMNS = [
   'timestamp', 'subject', 'device_label', 'mode', 'slot', 'rep', 'filename', 'width', 'height', 'file_bytes',
   'camera_label', 'requested_preset', 'zoom', 'torch', 'focus_mode', 'orientation', 'orientation_ok',
-  'level_on', 'level_roll', 'level_pitch', 'level_ok', 'mirror_required', 'since_slot_open_ms', 'capture_ms',
+  'level_on', 'level_roll', 'level_pitch', 'level_ok', 'mirror_applied', 'since_slot_open_ms', 'capture_ms',
   'standalone', 'imagecapture_available', 'overlay_version',
 ];
 
@@ -600,6 +718,7 @@ async function clearSubject() {
   el.shareZip.hidden = true;
   renderChips();
   renderSummary();
+  updateGalleryButton();
   toast(`${ids.length} foto dihapus.`);
 }
 
@@ -608,7 +727,8 @@ function renderSummary() {
   const head = '<thead><tr><th>Slot</th><th>Foto</th></tr></thead>';
   const rows = state.slots.map((s) => {
     const n = counts[s.code] || 0;
-    return `<tr class="${n >= TARGET_REPS ? 'done' : ''}"><td>${s.code} ${escapeHtml(s.label)}</td><td>${n} / ${TARGET_REPS}</td></tr>`;
+    const target = s.required ? ` / ${TARGET_REPS}` : ' (tambahan)';
+    return `<tr class="${s.required && n >= TARGET_REPS ? 'done' : ''}"><td>${s.code} ${escapeHtml(s.label)}</td><td>${n}${target}</td></tr>`;
   }).join('');
   el.summary.innerHTML = `${head}<tbody>${rows}</tbody>`;
 }
@@ -629,6 +749,179 @@ function updateDiag() {
     supported_constraints: navigator.mediaDevices?.getSupportedConstraints?.() ?? null,
     overlay_version: state.slotsVersion,
   }, null, 2);
+}
+
+/* ---------- Galeri ---------- */
+
+function galleryList() {
+  const subject = currentSubject();
+  const device = el.deviceLabel.value;
+  const slotFilter = el.galSlot.value;
+  const order = Object.fromEntries(state.slots.map((s, i) => [s.code, i]));
+  return state.metas
+    .filter((m) => el.galScope.value === 'all' || (m.subject === subject && m.device_label === device))
+    .filter((m) => !slotFilter || m.slot === slotFilter)
+    .sort((a, b) => (order[a.slot] ?? 99) - (order[b.slot] ?? 99) || a.timestamp.localeCompare(b.timestamp));
+}
+
+function openGallery() {
+  if (!db.h) { toast('Penyimpanan lokal tidak tersedia.'); return; }
+  const current = el.galSlot.value;
+  el.galSlot.replaceChildren(new Option('Semua slot', ''), ...state.slots.map((s) => new Option(`${s.code} ${s.label}`, s.code)));
+  el.galSlot.value = current;
+  el.gallery.hidden = false;
+  renderGallery();
+}
+
+function closeGallery() {
+  el.gallery.hidden = true;
+  revokeGalleryUrls();
+  el.galBody.replaceChildren();
+}
+
+function revokeGalleryUrls() {
+  for (const u of state.gallery.urls) URL.revokeObjectURL(u);
+  state.gallery.urls = [];
+}
+
+async function renderGallery() {
+  revokeGalleryUrls();
+  const list = galleryList();
+  state.gallery.list = list;
+  if (!list.length) {
+    const empty = document.createElement('p');
+    empty.className = 'galEmpty';
+    empty.textContent = 'Belum ada foto untuk pilihan ini. Ambil foto dari layar kamera, lalu buka galeri lagi.';
+    el.galBody.replaceChildren(empty);
+    return;
+  }
+  // Kelompokkan per slot, sesuai urutan template.
+  const groups = new Map();
+  list.forEach((m, i) => {
+    if (!groups.has(m.slot)) groups.set(m.slot, []);
+    groups.get(m.slot).push([m, i]);
+  });
+  const frag = document.createDocumentFragment();
+  const pending = [];
+  for (const [code, items] of groups) {
+    const slot = state.slots.find((s) => s.code === code);
+    const h = document.createElement('h3');
+    h.textContent = `${code} ${slot ? slot.label : ''} (${items.length})`;
+    const grid = document.createElement('div');
+    grid.className = 'galGrid';
+    for (const [m, i] of items) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tile';
+      b.setAttribute('aria-label', `${m.slot} ke-${m.rep}, ${m.subject}`);
+      const img = document.createElement('img');
+      img.alt = '';
+      const cap = document.createElement('span');
+      cap.textContent = el.galScope.value === 'all' ? `${m.subject} ke-${m.rep}` : `ke-${m.rep}`;
+      b.append(img, cap);
+      b.addEventListener('click', () => showInViewer(i));
+      grid.append(b);
+      pending.push([m, img]);
+    }
+    frag.append(h, grid);
+  }
+  el.galBody.replaceChildren(frag);
+  // Thumbnail dimuat berurutan agar memori HP tidak melonjak.
+  for (const [m, img] of pending) {
+    if (el.gallery.hidden) return;
+    try {
+      const url = await thumbUrl(m.id);
+      if (url) img.src = url;
+    } catch { /* biarkan tile kosong */ }
+  }
+}
+
+async function thumbUrl(id) {
+  let t = await db.thumb(id);
+  if (!t) {
+    // Foto dari versi pertama belum punya thumbnail: buat sekarang lalu simpan.
+    const f = await db.file(id);
+    if (!f) return null;
+    const bmp = await createImageBitmap(new Blob([f.data], { type: f.type }));
+    const data = await (await makeThumb(bmp)).arrayBuffer();
+    bmp.close?.();
+    await db.putThumb(id, data);
+    t = { data };
+  }
+  const url = URL.createObjectURL(new Blob([t.data], { type: 'image/jpeg' }));
+  state.gallery.urls.push(url);
+  return url;
+}
+
+async function showInViewer(index) {
+  const list = state.gallery.list;
+  if (index < 0 || index >= list.length) return;
+  state.gallery.index = index;
+  const m = list[index];
+  const f = await db.file(m.id);
+  if (!f) { toast('File foto tidak ditemukan.'); return; }
+  if (state.gallery.viewUrl) URL.revokeObjectURL(state.gallery.viewUrl);
+  state.gallery.viewUrl = URL.createObjectURL(new Blob([f.data], { type: f.type }));
+  el.viewImg.src = state.gallery.viewUrl;
+  el.viewTitle.textContent = `${m.slot} ke-${m.rep} (${index + 1}/${list.length})`;
+  const when = new Date(m.timestamp).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+  el.viewMeta.textContent = [
+    `${m.subject}, ${m.device_label}`,
+    `${m.width} × ${m.height}, ${(m.file_bytes / 1e6).toFixed(1)} MB`,
+    m.camera_label || '',
+    m.mirror_applied ? `Cermin: dibalik ${m.mirror_applied === 'vertical' ? 'vertikal' : 'horizontal'}` : '',
+    m.level_ok == null ? '' : (m.level_ok ? 'Waterpass: rata' : `Waterpass: miring ${Math.abs(m.level_roll)}°`),
+    when,
+  ].filter(Boolean).join('\n');
+  el.viewPrev.disabled = index === 0;
+  el.viewNext.disabled = index === list.length - 1;
+  el.viewer.hidden = false;
+}
+
+function closeViewer() {
+  el.viewer.hidden = true;
+  if (state.gallery.viewUrl) URL.revokeObjectURL(state.gallery.viewUrl);
+  state.gallery.viewUrl = null;
+  el.viewImg.removeAttribute('src');
+}
+
+async function deleteCurrent() {
+  const m = state.gallery.list[state.gallery.index];
+  if (!m || !confirm(`Hapus foto ${m.slot} ke-${m.rep} dari HP ini?`)) return;
+  await db.remove([m.id]);
+  state.metas = state.metas.filter((x) => x.id !== m.id);
+  closeViewer();
+  renderChips();
+  updateGalleryButton();
+  renderGallery();
+  toast('Foto dihapus.');
+}
+
+function bindSwipe(target) {
+  let x0 = null;
+  target.addEventListener('touchstart', (e) => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+  target.addEventListener('touchend', (e) => {
+    if (x0 == null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) < 60) return;
+    showInViewer(state.gallery.index + (dx < 0 ? 1 : -1));
+  });
+}
+
+async function updateGalleryButton() {
+  // Tampilkan thumbnail foto terakhir di tombol galeri (bila ada).
+  const last = [...state.metas].sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
+  if (!last || !db.h) {
+    el.lastThumb.hidden = true;
+    el.galleryLabel.hidden = false;
+    return;
+  }
+  try {
+    const t = await db.thumb(last.id);
+    if (!t) return;
+    showLast(new Blob([t.data], { type: 'image/jpeg' }), last);
+  } catch { /* abaikan */ }
 }
 
 /* ---------- Utilitas ---------- */

@@ -10,7 +10,19 @@ waterpass, panel diagnostik, dan ekspor ZIP. Tidak ada server dan database; foto
 | `index.html` | Kerangka halaman |
 | `app.js` | Kamera, overlay, capture, IndexedDB, ekspor ZIP |
 | `style.css` | Tampilan |
-| `slots.v1.json` | 8 slot + garis bantu (koordinat 0..1). Ubah di sini, bukan di kode |
+| `slots.v2.json` | 11 slot (8 wajib + 3 tambahan) dan garis bantu. **Dibuat oleh generator**, jangan diedit manual |
+| `tools/gen_slots.py` | Generator garis bantu gigi/wajah. Ubah ukuran/posisi di sini lalu jalankan `python3 tools/gen_slots.py` |
+
+## Perubahan v2 (masukan dokter setelah uji pertama)
+
+- Garis bantu intraoral kini hanya outline posisi gigi (tanpa garis dan label); gigi bawah tersembunyi di belakang gigi atas.
+- EO-03 memakai siluet kepala menghadap ke kanan.
+- Oklusal atas/bawah diambil dalam posisi **portrait**: gigi seri atas di atas layar, gigi seri bawah di bawah layar.
+- Tombol **Cermin**: preview dan hasil foto dibalik (vertikal untuk oklusal, horizontal untuk lateral). Default aktif untuk oklusal.
+- Slot tambahan: IO-06 anterior atas, IO-07 anterior bawah, FREE tanpa garis bantu (tidak dihitung target 3 foto).
+- **Galeri**: ketuk tombol di kiri shutter. Foto dikelompokkan per slot; ketuk untuk ukuran penuh, geser kiri/kanan, hapus per foto.
+- Database lokal naik ke versi 2 (tambah thumbnail). Foto lama tetap ada; thumbnail dibuat saat galeri pertama kali dibuka.
+- `slots.v1.json` tidak dipakai lagi dan boleh dihapus dari repo.
 
 ## Deploy (wajib HTTPS)
 
@@ -42,8 +54,8 @@ waktu sejak slot dibuka, waktu capture, mode standalone, ketersediaan `ImageCapt
 ## Batasan yang diketahui
 
 - Foto = frame video, bukan foto resolusi penuh kamera iPhone. Mengukur selisih ini adalah tujuan PoC.
-- Arah anterior pada IO-01/IO-03 dan posisi garis bantu adalah perkiraan awal dari template klinik;
-  dokter perlu mengoreksi `slots.v1.json` setelah uji pertama, lalu naikkan `version`.
-- Foto oklusal (cermin) disimpan apa adanya; flip vertikal hanya dicatat (`mirror_required`), belum diterapkan.
+- Ukuran dan posisi outline gigi adalah perkiraan generik; dokter mengoreksi lewat `tools/gen_slots.py`, lalu naikkan `VERSION`.
+- IO-01/IO-03 mengikuti tampak langsung: gigi depan di sisi kiri layar untuk sisi kiri pasien, di kanan untuk sisi kanan.
+- Arah flip cermin (vertikal untuk oklusal) perlu dikonfirmasi saat uji; bila hasilnya terbalik, ubah `axis` slot di `tools/gen_slots.py`.
 - iOS dapat menghapus data situs yang jarang dibuka. Jangan tunda ekspor.
 - Jangan pakai foto pasien di PoC ini.

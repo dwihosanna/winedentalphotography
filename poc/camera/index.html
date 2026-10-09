@@ -37,16 +37,22 @@
   <footer id="bottombar">
     <nav id="slotChips" aria-label="Pilih slot foto"></nav>
     <div class="shutterRow">
-      <img id="lastThumb" alt="Foto terakhir" hidden>
+      <button id="galleryBtn" type="button" aria-label="Buka galeri">
+        <img id="lastThumb" alt="" hidden>
+        <span id="galleryLabel">Galeri</span>
+      </button>
       <button id="shutter" type="button" aria-label="Ambil foto" disabled></button>
-      <p id="lastInfo">Belum ada foto</p>
+      <div class="rightCol">
+        <button id="mirrorBtn" type="button" aria-pressed="false" hidden>Cermin</button>
+        <p id="lastInfo">Belum ada foto</p>
+      </div>
     </div>
   </footer>
 
   <section id="startScreen">
     <div class="startCard">
       <h2>Uji kamera mode A</h2>
-      <p>Kamera browser dengan garis bantu. Foto hanya disimpan di HP ini sampai Anda mengekspornya sebagai ZIP.</p>
+      <p>Kamera browser dengan garis bantu gigi dan wajah. Foto hanya disimpan di HP ini sampai Anda mengekspornya sebagai ZIP.</p>
       <label>ID subjek (relawan, bukan pasien)
         <input id="subject" autocomplete="off" autocapitalize="characters" placeholder="mis. R01">
       </label>
@@ -117,6 +123,33 @@
       <pre id="diag"></pre>
     </fieldset>
   </dialog>
+
+  <section id="gallery" hidden aria-label="Galeri foto">
+    <header class="galHead">
+      <h2>Galeri</h2>
+      <select id="galScope" aria-label="Cakupan">
+        <option value="subject">Subjek dan perangkat ini</option>
+        <option value="all">Semua foto di HP ini</option>
+      </select>
+      <select id="galSlot" aria-label="Filter slot"></select>
+      <button id="galClose" type="button">Tutup</button>
+    </header>
+    <div id="galBody"></div>
+  </section>
+
+  <section id="viewer" hidden aria-label="Lihat foto">
+    <header class="viewHead">
+      <button id="viewClose" type="button">Kembali</button>
+      <p id="viewTitle"></p>
+      <button id="viewDelete" class="danger" type="button">Hapus</button>
+    </header>
+    <div id="viewStage"><img id="viewImg" alt=""></div>
+    <footer class="viewFoot">
+      <button id="viewPrev" type="button" aria-label="Foto sebelumnya">Sebelumnya</button>
+      <p id="viewMeta"></p>
+      <button id="viewNext" type="button" aria-label="Foto berikutnya">Berikutnya</button>
+    </footer>
+  </section>
 
   <div id="toast" role="status" hidden></div>
 </body>
