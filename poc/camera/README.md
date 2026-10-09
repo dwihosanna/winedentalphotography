@@ -13,6 +13,15 @@ waterpass, panel diagnostik, dan ekspor ZIP. Tidak ada server dan database; foto
 | `slots.v2.json` | 11 slot (8 wajib + 3 tambahan) dan garis bantu. **Dibuat oleh generator**, jangan diedit manual |
 | `tools/gen_slots.py` | Generator garis bantu gigi/wajah. Ubah ukuran/posisi di sini lalu jalankan `python3 tools/gen_slots.py` |
 
+## Perubahan v2.2 (masukan dokter: profil dan lengkung senyum)
+
+- EO-03: siluet profil baru dengan proporsi wajah standar (tiga sepertiga wajah sama tinggi, stomion di 1/3 atas
+  sepertiga bawah, telinga setinggi alis s.d. dasar hidung). Garis putus-putus: garis Frankfort (telinga ke bawah mata)
+  dan penanda batas sepertiga wajah (garis rambut, glabela, subnasale, dagu).
+- IO-02, IO-06, IO-07: tepi insisal mengikuti lengkung senyum (gigi seri tengah paling bawah, naik ke posterior),
+  bukan garis datar. Besar lengkung diatur lewat `SMILE_RISE` di generator.
+- `slots.v2.json` versi 2.2.0.
+
 ## Perubahan v2.1 (masukan dokter: bentuk gigi dan rotasi)
 
 - Mahkota gigi tampak depan/samping kini berbentuk persegi membulat per jenis gigi (insisivus tepi rata,

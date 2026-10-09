@@ -431,7 +431,7 @@ function drawArt(sh, w, h) {
   const byId = Object.fromEntries(sh.layers.map((l) => [l.id, l]));
   for (const layer of sh.layers) {
     const group = svg('g', {});
-    group.setAttribute('class', 'guide art');
+    group.setAttribute('class', layer.dash ? 'guide art dash' : 'guide art');
     const cover = layer.maskBy && byId[layer.maskBy];
     if (cover) {
       // Lapisan ini disembunyikan di bawah lapisan lain (gigi bawah di belakang gigi atas).

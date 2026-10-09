@@ -9,7 +9,7 @@ import math
 import re
 from pathlib import Path
 
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 OUT = Path(__file__).resolve().parent.parent / "slots.v2.json"
 
 
@@ -87,28 +87,41 @@ def mirror_x(path, width):
 
 # ---------------------------------------------------------------- tampak depan
 # Satuan bebas (skala digambar ulang ke frame). Gigi posterior menyempit karena perspektif lengkung.
-UPPER_FRONT = [  # per sisi dari midline: lebar, tinggi, jenis, y gingiva, tilt
-    (132, 175, "inc", 245, 0), (92, 152, "lat", 258, 2), (72, 160, "can", 250, 4),
-    (54, 128, "pm", 280, 4), (44, 112, "pm", 292, 3), (38, 100, "mol", 302, 2),
+UPPER_FRONT = [  # per sisi dari midline: lebar, tinggi, jenis, tilt
+    (132, 175, "inc", 0), (92, 152, "lat", 2), (72, 160, "can", 4),
+    (54, 128, "pm", 4), (44, 112, "pm", 3), (38, 100, "mol", 2),
 ]
-LOWER_FRONT = [  # lebar, tinggi, jenis, y tepi insisal, tilt
-    (84, 125, "linc", 382, 0), (80, 132, "linc", 380, 2), (74, 135, "can", 378, 4),
-    (58, 112, "pm", 384, 4), (48, 100, "pm", 388, 3), (42, 95, "mol", 390, 2),
+LOWER_FRONT = [  # lebar, tinggi, jenis, tilt
+    (84, 125, "linc", 0), (80, 132, "linc", 2), (74, 135, "can", 4),
+    (58, 112, "pm", 4), (48, 100, "pm", 3), (42, 95, "mol", 2),
 ]
+UPPER_EDGE = 420  # y tepi insisal gigi seri tengah atas
+OVERBITE = 38     # tepi insisal bawah tersembunyi di belakang gigi atas
+# Lengkung senyum: tepi insisal/oklusal naik ke posterior mengikuti parabola (gigi seri tengah paling bawah).
+SMILE_RISE = 42   # naik pada jarak SMILE_REACH dari midline
+SMILE_REACH = 350
 
 
-def front_rows(width=1200, n_upper=6, n_lower=6, lower_shift=0, upper_shift=0):
+def smile(d):
+    return SMILE_RISE * (d / SMILE_REACH) ** 2
+
+
+def front_rows(width=1200, n_upper=6, n_lower=6):
     mid = width / 2
     upper, lower = [], []
     x = 0
-    for w, h, k, y0, tilt in UPPER_FRONT[:n_upper]:
+    for w, h, k, tilt in UPPER_FRONT[:n_upper]:
+        d = x + w / 2
+        edge = UPPER_EDGE - smile(d)
         for side in (1, -1):
-            upper.append(crown_path(mid + side * (x + w / 2), y0 + upper_shift, w, h, k, "upper", side * tilt))
+            upper.append(crown_path(mid + side * d, edge - h, w, h, k, "upper", side * tilt))
         x += w
     x = 0
-    for w, h, k, y0, tilt in LOWER_FRONT[:n_lower]:
+    for w, h, k, tilt in LOWER_FRONT[:n_lower]:
+        d = x + w / 2
+        edge = UPPER_EDGE - OVERBITE - smile(d)
         for side in (1, -1):
-            lower.append(crown_path(mid + side * (x + w / 2), y0 + lower_shift, w, h, k, "lower", side * tilt))
+            lower.append(crown_path(mid + side * d, edge, w, h, k, "lower", side * tilt))
         x += w
     return upper, lower
 
@@ -246,13 +259,27 @@ def catmull_rom(points, closed=False):
     return d
 
 
-PROFILE_RIGHT = [  # menghadap ke kanan; viewBox 0 0 300 400
-    (104, 398), (96, 350), (78, 300), (64, 240), (62, 180), (80, 112), (122, 72),
-    (172, 60), (214, 76), (238, 112), (246, 158), (246, 184), (240, 200),
-    (252, 222), (266, 246), (248, 258), (254, 274), (246, 284),
-    (251, 295), (240, 308), (247, 326), (240, 340), (222, 348),
-    (196, 350), (186, 362), (184, 398),
+# Profil kanan pasien, menghadap ke kanan. Proporsi: sepertiga wajah sama tinggi (trichion-glabella,
+# glabella-subnasale, subnasale-menton); stomion di 1/3 atas sepertiga bawah; telinga setinggi alis s.d. dasar hidung;
+# garis Frankfort (porion-orbitale) horizontal. Satuan: sepertiga wajah = 130.
+FACE = {"trichion": 80, "glabella": 210, "subnasale": 340, "menton": 470}
+FRANKFORT_Y = 298
+PROFILE_RIGHT = [
+    (206, 650), (200, 560), (186, 482), (142, 424), (106, 352), (88, 272), (92, 192), (120, 116),
+    (170, 58), (240, 24), (320, 16), (392, 36), (438, 76), (464, 124), (474, 172), (471, 210),
+    (461, 230), (474, 256), (490, 286), (507, 312), (516, 324), (507, 336), (484, 341), (464, 342),
+    (471, 356), (482, 370), (472, 380), (459, 384), (472, 392), (479, 404), (468, 418), (453, 428),
+    (461, 442), (468, 455), (459, 467), (437, 474), (410, 478), (382, 486), (373, 522), (371, 584), (373, 650),
 ]
+EAR_RIGHT = [(236, 262), (212, 256), (193, 270), (187, 300), (194, 326), (209, 344), (228, 350), (237, 338)]
+
+
+def profile_layers():
+    ticks = [f"M440 {y}H545" for y in FACE.values()]  # batas sepertiga wajah
+    return [
+        {"id": "head", "paths": [catmull_rom(PROFILE_RIGHT), catmull_rom(EAR_RIGHT)]},
+        {"id": "ref", "dash": True, "paths": [f"M222 {FRANKFORT_Y}H500"] + ticks},
+    ]
 
 
 # ---------------------------------------------------------------- slot
@@ -326,8 +353,8 @@ def build():
          "overlay": [corners()] + face_front_lines()},
         {"code": "EO-03", "label": "Profil kanan (standar ABO)", "orientation": "portrait", "required": True,
          "level": True, "mirror": None,
-         "checklist": ["Latar putih", "Wajah menghadap ke kanan layar", "Telinga terlihat", "Bahu tegak lurus kamera"],
-         "overlay": [corners(), art([{"id": "head", "paths": [catmull_rom(PROFILE_RIGHT)]}], HEAD_L, HEAD_P)]},
+         "checklist": ["Latar putih", "Wajah menghadap ke kanan layar", "Telinga terlihat", "Garis Frankfort (telinga-bawah mata) datar", "Bahu tegak lurus kamera"],
+         "overlay": [corners(), art(profile_layers(), HEAD_L, HEAD_P)]},
         {"code": "IO-01", "label": "Intraoral kiri", "orientation": "landscape", "required": True,
          "level": True, "mirror": {"axis": "horizontal", "default": False},
          "checklist": ["Dua retraktor", "Oklusi maksimal", "Gigi depan di sisi kiri layar"],
