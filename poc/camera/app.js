@@ -1,11 +1,12 @@
 // PoC kamera ortodonti – Mode A (getUserMedia + overlay garis bantu) – v2
 // v2: garis bantu gigi/wajah (slots.v2.json), mode cermin, galeri.
+// v2.1: garis bantu mengikuti rotasi HP (portrait/landscape), juga saat kunci rotasi iOS aktif.
 // Tanpa server dan tanpa database: foto + log disimpan di IndexedDB HP ini,
 // lalu diekspor sebagai ZIP (photos/*.jpg, log.csv, log.json).
 
 const $ = (id) => document.getElementById(id);
 const el = Object.fromEntries([
-  'stage', 'video', 'overlay', 'rotateHint', 'flash', 'whoBtn', 'whoText', 'slotTitle', 'slotCheck',
+  'stage', 'video', 'overlay', 'flash', 'whoBtn', 'whoText', 'slotTitle', 'slotCheck',
   'menuBtn', 'level', 'bubble', 'levelText', 'slotChips', 'lastThumb', 'shutter', 'lastInfo',
   'startScreen', 'subject', 'deviceLabel', 'startBtn', 'startNote', 'panel', 'cameraSelect', 'preset',
   'zoomRow', 'zoom', 'zoomOut', 'focusRow', 'focusMode', 'torchRow', 'torch', 'opacity', 'opacityOut',
@@ -42,6 +43,8 @@ const state = {
   zip: null,
   lastUrl: null,
   level: { on: false, roll: null, pitch: null, g: null },
+  // Rotasi fisik HP dari sensor gravitasi. rel = selisih dengan rotasi layar (kunci rotasi aktif).
+  turn: { sign: 0, hand: 0, phys: null, rel: 0 },
   mirrorBySlot: {},     // status tombol Cermin per slot (default dari slots.v2.json)
   gallery: { list: [], index: -1, urls: [], viewUrl: null },
 };
@@ -211,6 +214,8 @@ async function onStart() {
   renderChips();
   if (!state.started) {
     state.started = true;
+    // Sensor gerak dipakai untuk waterpass dan rotasi garis bantu; iOS hanya mengizinkan dari ketukan pengguna.
+    if (!state.level.on) enableLevel();
     await startCamera();
   }
 }
@@ -341,7 +346,9 @@ function applyMirrorPreview() {
   const axis = mirrorAxis();
   el.mirrorBtn.setAttribute('aria-pressed', String(!!axis));
   el.mirrorBtn.textContent = axis ? 'Cermin: aktif' : 'Cermin: mati';
-  el.video.style.transform = axis === 'vertical' ? 'scaleY(-1)' : axis === 'horizontal' ? 'scaleX(-1)' : '';
+  // Sumbu cermin berlaku pada foto tegak; bila layar tidak ikut berputar, sumbu di layar tertukar.
+  const screenAxis = state.turn.rel % 180 && axis ? (axis === 'vertical' ? 'horizontal' : 'vertical') : axis;
+  el.video.style.transform = screenAxis === 'vertical' ? 'scaleY(-1)' : screenAxis === 'horizontal' ? 'scaleX(-1)' : '';
 }
 
 function renderChips() {
@@ -379,11 +386,13 @@ function layoutOverlay() {
     height: `${dh}px`,
   });
   el.overlay.setAttribute('viewBox', `0 0 ${dw} ${dh}`);
-  el.overlay.replaceChildren(...drawShapes(state.slot.overlay, dw, dh));
 
-  const wantLandscape = state.slot.orientation === 'landscape';
-  el.rotateHint.textContent = `Putar HP ke posisi ${wantLandscape ? 'landscape' : 'portrait'} untuk slot ini.`;
-  el.rotateHint.hidden = state.slot.orientation === 'any' || wantLandscape === (vw > vh);
+  // Garis bantu digambar di frame tegak (sesuai posisi HP), lalu diputar bila layar tidak ikut berputar.
+  const rel = state.turn.rel;
+  const [uw, uh] = rel % 180 ? [dh, dw] : [dw, dh];
+  const g = svg('g', { transform: `translate(${dw / 2} ${dh / 2}) rotate(${rel}) translate(${-uw / 2} ${-uh / 2})` });
+  g.append(...drawShapes(state.slot.overlay, uw, uh));
+  el.overlay.replaceChildren(g);
 }
 
 function drawShapes(shapes, w, h) {
@@ -412,7 +421,7 @@ function drawShapes(shapes, w, h) {
 let maskSeq = 0;
 /* Gambar garis bantu (gigi/kepala) di viewBox sendiri, diskalakan proporsional ke dalam 'box'. */
 function drawArt(sh, w, h) {
-  const [bx, by, bw, bh] = sh.box;
+  const [bx, by, bw, bh] = (w > h ? sh.boxLandscape : sh.boxPortrait) || sh.box;
   const root = svg('svg', {
     x: bx * w, y: by * h, width: bw * w, height: bh * h,
     viewBox: sh.viewBox, preserveAspectRatio: 'xMidYMid meet', overflow: 'visible',
@@ -472,8 +481,10 @@ async function capture() {
   el.shutter.disabled = true;
   try {
     const t0 = performance.now();
-    const w = v.videoWidth;
-    const h = v.videoHeight;
+    const vw = v.videoWidth;
+    const vh = v.videoHeight;
+    const rel = state.turn.rel;
+    const [w, h] = rel % 180 ? [vh, vw] : [vw, vh]; // foto disimpan tegak sesuai posisi HP
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
@@ -481,7 +492,9 @@ async function capture() {
     const axis = mirrorAxis();
     if (axis === 'horizontal') { ctx.translate(w, 0); ctx.scale(-1, 1); }
     if (axis === 'vertical') { ctx.translate(0, h); ctx.scale(1, -1); }
-    ctx.drawImage(v, 0, 0, w, h);
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate((-rel * Math.PI) / 180);
+    ctx.drawImage(v, -vw / 2, -vh / 2, vw, vh);
     const blob = await new Promise((resolve, reject) =>
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Gagal membuat JPEG'))), 'image/jpeg', 0.95));
     const captureMs = Math.round(performance.now() - t0);
@@ -513,8 +526,10 @@ async function capture() {
       zoom: settings.zoom ?? null,
       torch: settings.torch ?? null,
       focus_mode: settings.focusMode ?? null,
-      orientation: screen.orientation?.type || (w > h ? 'landscape' : 'portrait'),
-      orientation_ok: (slot.orientation === 'landscape') === (w > h),
+      orientation: w > h ? 'landscape' : 'portrait',
+      orientation_ok: slot.orientation === 'any' || (slot.orientation === 'landscape') === (w > h),
+      screen_orientation: screen.orientation?.type ?? null,
+      rotation_applied: rel,
       level_on: state.level.on,
       level_roll: round1(state.level.roll),
       level_pitch: round1(state.level.pitch),
@@ -608,7 +623,8 @@ function onMotion(e) {
   state.level.g = g;
 
   const mag = Math.hypot(g.x, g.y, g.z) || 1;
-  const landscape = Math.abs(screenAngle()) === 90;
+  updateTurn(g, mag);
+  const landscape = Math.abs(state.turn.phys ?? screenAngle()) === 90;
   const down = landscape ? Math.abs(g.x) : Math.abs(g.y);
   const side = landscape ? g.y : g.x;
   state.level.roll = deg(Math.atan2(side, down));                       // horizon miring
@@ -633,6 +649,45 @@ function levelOk() {
 
 function screenAngle() {
   return screen.orientation?.angle ?? window.orientation ?? 0;
+}
+
+const norm = (a) => ((Math.round(a) % 360) + 540) % 360 - 180; // -180..179
+
+/* Posisi fisik HP dari gravitasi, agar garis bantu tetap tegak walau kunci rotasi iOS aktif.
+   Tanda dan arah sumbu gravitasi berbeda antar browser, jadi dikalibrasi saat posisi HP sama dengan layar:
+   sign saat portrait (iOS melapor gravitasi, bukan reaksinya), hand saat landscape tanpa kunci rotasi. */
+function updateTurn(g, mag) {
+  if (Math.hypot(g.x, g.y) < 0.6 * mag) return; // HP hampir datar: posisi tidak jelas, pakai yang lama
+  const t = state.turn;
+  const raw = deg(Math.atan2(g.x, g.y));
+  const scr = norm(screenAngle());
+  const quad = (a) => {
+    const q = Math.round(a / 90) * 90;
+    return Math.abs(norm(a - q)) <= 30 ? norm(q) : null; // zona mati ±15° di antara dua posisi
+  };
+  const phys = (sign, hand) => quad(hand * raw + (sign > 0 ? 0 : 180));
+  if (!t.sign) {
+    if (scr !== 0) return;
+    const q = phys(1, 1);
+    if (q === 0) t.sign = 1;
+    else if (q === -180) t.sign = -1;
+    else return; // HP miring padahal layar portrait (kunci rotasi?): tunggu
+  }
+  if (!t.hand && Math.abs(scr) === 90) {
+    const q = phys(t.sign, 1);
+    if (q === scr) t.hand = 1;
+    else if (q === -scr) t.hand = -1;
+  }
+  const now = phys(t.sign, t.hand || 1);
+  if (now == null) return;
+  t.phys = now;
+  const rel = norm(now - scr);
+  const newRel = Math.abs(rel) === 90 ? rel : 0; // HP terbalik: abaikan
+  if (newRel !== t.rel) {
+    t.rel = newRel;
+    applyMirrorPreview();
+    layoutOverlay();
+  }
 }
 
 /* ---------- Ekspor dan rekap ---------- */

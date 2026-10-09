@@ -26,7 +26,11 @@ jobs:
       - name: Cek sintaks JS dan JSON
         run: |
           node --check poc/camera/app.js
-          node -e "JSON.parse(require('fs').readFileSync('poc/camera/slots.v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('poc/camera/slots.v2.json','utf8'))"
+      - name: Cek slots.v2.json sama dengan hasil generator
+        run: |
+          python3 poc/camera/tools/gen_slots.py
+          git diff --exit-code poc/camera/slots.v2.json
 
   deploy:
     needs: check
