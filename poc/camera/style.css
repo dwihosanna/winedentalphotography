@@ -173,6 +173,23 @@ button.danger { color: var(--danger); border-color: #5a2d2a; }
 #slotChips button.optional { border-style: dashed; }
 #slotChips button[aria-pressed="true"] { border-color: var(--guide); color: var(--guide); }
 
+#zoomBar {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+#zoomBar button {
+  min-width: 48px;
+  min-height: 40px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.55);
+}
+#zoomBar button[aria-pressed="true"] { border-color: var(--guide); color: var(--guide); }
+
 .shutterRow {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -232,6 +249,8 @@ button.danger { color: var(--danger); border-color: #5a2d2a; }
   }
   #slotChips { flex: 1; flex-direction: column; overflow-x: hidden; overflow-y: auto; }
   #slotChips button { min-width: 0; flex-direction: row; justify-content: space-between; gap: 6px; }
+  #zoomBar { flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
+  #zoomBar button { min-width: 48px; }
   .shutterRow { grid-template-columns: 1fr; justify-items: center; gap: 6px; }
   #galleryBtn, #shutter, .rightCol { grid-column: 1; justify-self: center; }
   .rightCol { align-items: center; }

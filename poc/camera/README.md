@@ -13,6 +13,18 @@ waterpass, panel diagnostik, dan ekspor ZIP. Tidak ada server dan database; foto
 | `slots.v2.json` | 11 slot (8 wajib + 3 tambahan) dan garis bantu. **Dibuat oleh generator**, jangan diedit manual |
 | `tools/gen_slots.py` | Generator garis bantu gigi/wajah. Ubah ukuran/posisi di sini lalu jalankan `python3 tools/gen_slots.py` |
 
+## Perubahan v2.3 (masukan dokter: lensa tele dan zoom)
+
+- Kamera default kini **Otomatis**: memakai kamera multi-lensa iPhone ("Back Triple Camera" / kamera belakang tiga lensa).
+  iOS memilih lensa sendiri sesuai zoom dan jarak fokus, seperti app Kamera. Lensa tele tidak bisa fokus dekat,
+  jadi memilih kamera tele langsung gagal pada jarak 20–30 cm; kamera multi-lensa otomatis memakai lensa utama + crop.
+  Di Android (atau bila kamera multi-lensa tidak ada) dipakai kamera belakang bawaan browser.
+- Tombol zoom **1× / 2× / 3× / 4× / 5×** di atas tombol foto, tanpa perlu membuka Pengaturan. Hanya tombol yang
+  didukung kamera yang tampil. Zoom terakhir diingat **per slot** (mis. wajah 1×, intraoral 2×); default 1×.
+- Log menambah `zoom_x` (kelipatan 1×), `camera_auto`, dan kolom rotasi (`screen_orientation`, `rotation_applied`)
+  yang sebelumnya belum masuk `log.csv`.
+- Pilihan lensa manual tetap ada di Pengaturan untuk diagnostik.
+
 ## Perubahan v2.2 (masukan dokter: profil dan lengkung senyum)
 
 - EO-03: siluet profil baru dengan proporsi wajah standar (tiga sepertiga wajah sama tinggi, stomion di 1/3 atas
@@ -79,3 +91,4 @@ rotasi yang diterapkan, waktu sejak slot dibuka, waktu capture, mode standalone,
 - iOS dapat menghapus data situs yang jarang dibuka. Jangan tunda ekspor.
 - Jangan pakai foto pasien di PoC ini.
 - Arah putar saat kunci rotasi aktif baru diuji dengan sensor simulasi di Chrome. Bila garis bantu terbalik di iPhone, catat isi log `rotation_applied`.
+- Pemetaan zoom kamera multi-lensa (zoom 1 = 0,5×, zoom 2 = 1×) adalah asumsi. Bila tombol 1× tidak sama dengan 1× di app Kamera, kirim isi diagnostik (`zoom_base`, `capabilities.zoom`).
