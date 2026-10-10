@@ -2,6 +2,8 @@
 
 Oct 8, 2026 · @Winners
 
+**Revisi 10 Okt 2026:** aplikasi berdiri sendiri untuk dokter gigi mana pun (daftar akun + login Google, verifikasi dokter), pasien dikunci oleh **Dental Photo ID** (No. RM menjadi opsional), dashboard daftar pasien, sheet pasien dengan Galeri dan Arsip. Lihat 5.2–5.4, FR-27 s.d. FR-33, dan dampaknya di Bagian 7, 9, 10. MVP: dokter klinik memakai akun **Premium** yang diatur admin; dokter luar bisa mencoba akun **Free** (maks. 50 pasien, 5 GB, tanpa asisten) dan naik ke Premium setelah diverifikasi admin developer. Gratis selama masa uji 1–2 tahun; belum ada pembayaran.
+
 ## 1. Ringkasan eksekutif
 
 Sistem ini adalah PWA untuk mendokumentasikan foto ortodonti per pasien (dikunci oleh No. RM), dari awal pemasangan, setiap kontrol, sampai lepas behel, lalu menghasilkan laporan before/after dengan format template case report klinik (windetalaesthetic).
@@ -12,7 +14,7 @@ Sistem ini adalah PWA untuk mendokumentasikan foto ortodonti per pasien (dikunci
 - Arsip terstruktur otomatis: pasien, tanggal, tahap (awal/kontrol/lepas), kategori foto.
 - Report PDF case report dalam hitungan menit, bukan menyusun manual di Canva/PowerPoint.
 
-**Ruang lingkup v1**: manajemen pasien via No. RM (manual + opsional integrasi API RME), capture terpandu dengan overlay, upload foto/rontgen, galeri per kategori dan timeline, perbandingan side-by-side, generator report.
+**Ruang lingkup v1**: aplikasi mandiri multi-dokter (registrasi, login Google, verifikasi dokter gigi), manajemen pasien via Dental Photo ID dengan No. RM opsional (manual + opsional integrasi RME), capture terpandu dengan overlay, upload foto/rontgen, galeri per kategori dan timeline, perbandingan side-by-side, generator report.
 
 **Di luar ruang lingkup v1**: analisis sefalometri (tracing landmark), simulasi senyum/AI smile design, pemantauan jarak jauh oleh pasien, integrasi DICOM langsung ke mesin rontgen.
 
@@ -75,21 +77,21 @@ Garis putus-putus menunjukkan bahwa sesi Awal adalah sumber foto "before" defaul
 
 | Aktor | Peran dalam alur |
 | --- | --- |
-| Dokter | Membuat/menutup kasus, memeriksa foto, memilih foto dan generate report |
-| Asisten/perawat | Menyiapkan pasien, mengambil/mengunggah foto per slot, mengunggah rontgen |
-| Admin klinik | Mengelola pengguna, template slot, dan koneksi API RME |
+| Dokter (pemilik workspace) | Mendaftar akun, diverifikasi sebagai dokter gigi; membuat pasien dan kasus, memeriksa foto, generate report; mengundang asisten; mengatur template dan integrasi RME praktiknya |
+| Asisten/perawat | Diundang dokter ke workspace; menyiapkan pasien, mengambil/mengunggah foto per slot, mengunggah rontgen |
+| Admin platform | Memverifikasi akun dokter (STR/SIP); tidak melihat data pasien |
 | Sistem RME (eksternal) | Sumber identitas pasien berdasarkan No. RM (opsional) |
 | Pasien | Subjek foto; memberi consent dokumentasi/edukasi/publikasi |
 
 ## 5. Kebutuhan fungsional
 
-Ada 26 kebutuhan fungsional di 7 modul; 20 di antaranya MVP (diperbarui setelah konfirmasi klinik: FR-22 naik ke MVP, FR-26 ditambahkan). Prioritas di kolom terakhir bisa diubah langsung.
+Ada 34 kebutuhan fungsional di 8 modul; 28 di antaranya MVP (diperbarui setelah konfirmasi klinik: FR-22 naik ke MVP, FR-26 ditambahkan; revisi 10 Okt: FR-01/02/03/23/24 diubah, FR-27 s.d. FR-33 ditambahkan; akun Free/Premium: FR-28 kembali ke MVP sebagai syarat upgrade, FR-34 ditambahkan). Prioritas di kolom terakhir bisa diubah langsung.
 
 | ID | Modul | Kebutuhan | Kriteria penerimaan | Prioritas |
 | --- | --- | --- | --- | --- |
-| FR-01 | Pasien | Cari pasien dengan No. RM | Hasil muncul < 2 detik; RM tidak ditemukan → tawarkan "buat pasien baru" | MVP |
-| FR-02 | Pasien | Input pasien manual: No. RM, nama, tanggal lahir, jenis kelamin, no. HP | No. RM unik per klinik; duplikat ditolak dengan pesan jelas | MVP |
-| FR-03 | Pasien | Ambil data pasien dari ERP internal (GAS + Google Sheets): lookup read-only per No. RM via Sheets API (lihat 5.1) | Field hasil sinkron read-only + waktu sinkron; API gagal → tetap bisa input manual | v1.1 |
+| FR-01 | Pasien | Cari pasien dengan nama, Dental Photo ID, No. RM, atau no. HP (lihat FR-31) | Hasil muncul < 2 detik saat mengetik; tidak ditemukan → tawarkan "tambah pasien" | MVP |
+| FR-02 | Pasien | Sheet pasien baru: nama, tanggal lahir, email, no. HP; No. RM dan jenis kelamin opsional. Email dan no. HP hanya data kontak/identitas; aplikasi tidak mengirim apa pun ke pasien | Wajib: nama + tanggal lahir + salah satu kontak; nama + tanggal lahir sama di workspace yang sama → peringatan kemungkinan duplikat; No. RM bila diisi unik per workspace | MVP |
+| FR-03 | Pasien | Sinkron No. RM dan identitas dari RME (opsional, per workspace), mis. ERP GAS + Google Sheets via Sheets API (lihat 5.1) | Field hasil sinkron read-only + waktu sinkron; gagal → tetap bisa input manual; Dental Photo ID tidak pernah berubah karena sinkron | v1.1 |
 | FR-04 | Kasus | Buat kasus ortodonti per pasien: tipe behel, tanggal pemasangan, dokter PJ, status (aktif/selesai) | Satu pasien bisa > 1 kasus (mis. retreatment) | MVP |
 | FR-05 | Kasus | Buat sesi per kunjungan dengan tahap: Awal, Insersi, Kontrol ke-n, Lepas, Retensi | Nomor kontrol otomatis; tanggal sesi default hari ini, bisa diubah | MVP |
 | FR-06 | Capture | Capture langsung dengan kamera + overlay guide per kategori | Lihat Bagian 6 | MVP |
@@ -109,16 +111,24 @@ Ada 26 kebutuhan fungsional di 7 modul; 20 di antaranya MVP (diperbarui setelah 
 | FR-20 | Report | Generate case report sesuai template klinik (halaman profil wajah + intraoral, rontgen, setelah insersi) | Header terisi otomatis: nama, tanggal pasang/lepas, tipe behel; logo klinik | MVP |
 | FR-21 | Report | Report before/after: dokter memilih sesi "before" dan "after" lalu memilih foto per slot | Preview sebelum export; export PDF A4 | MVP |
 | FR-22 | Report | Opsi anonimisasi untuk edukasi/media sosial: sembunyikan nama, RM, dan (opsional) blur/crop mata | Hanya bisa dipakai bila consent publikasi pasien tercatat | MVP |
-| FR-23 | Keamanan | Login per pengguna + peran: Dokter, Asisten, Admin | Asisten bisa capture/upload; hanya dokter generate/export report | MVP |
-| FR-24 | Integrasi | Kirim balik foto/report ke RME | Tergantung API RME yang dipakai; perlu spesifikasi vendor | v2 |
+| FR-23 | Keamanan | Login per pengguna + peran per workspace: Dokter (pemilik), Asisten; Admin platform terpisah | Asisten bisa capture/upload; hanya dokter generate/export report; data pasien terisolasi per workspace | MVP |
+| FR-24 | Integrasi | Kirim balik foto/report ke RME memakai Dental Photo ID + No. RM sebagai kunci | Tergantung API RME yang dipakai; perlu spesifikasi vendor | v2 |
 | FR-25 | Keamanan | Audit log: siapa melihat, mengunggah, mengubah, mengekspor | Log tidak bisa dihapus pengguna klinik | MVP |
 | FR-26 | Report | Template report tambahan, minimal report progres untuk pasien (foto kontrol terakhir vs awal per kategori); template bisa dikonfigurasi admin | Dokter memilih template saat generate; template baru tidak butuh rilis ulang aplikasi | MVP |
+| FR-27 | Akun | Registrasi dan login dokter: email + kata sandi (verifikasi email) atau Login dengan Google (SSO). Akun baru = **Free**. Saat daftar, dokter menyatakan dirinya dokter gigi berizin dan menyetujui syarat layanan | Satu akun per email; email harus terverifikasi sebelum membuat pasien; persetujuan syarat layanan tercatat (versi + waktu); sesi login bisa dicabut; lupa kata sandi lewat email | MVP |
+| FR-28 | Akun | Upgrade ke **Premium**: dokter mengajukan dengan unggah STR (dan SIP bila ada); admin platform meninjau lalu mengubah status. Admin juga bisa langsung menetapkan Premium (dokter klinik) | Status pengajuan menunggu/disetujui/ditolak + alasan; perubahan status akun tercatat di audit log (siapa, kapan) | MVP |
+| FR-34 | Akun | Batas akun Free: **maks. 50 pasien** dan **5 GB penyimpanan** per workspace; Premium tanpa batas. Pemakaian tampil di menu akun. Admin bisa menangguhkan akun | Pasien ke-51 ditolak dengan ajakan upgrade; saat 5 GB tercapai, foto/rontgen baru ditolak tetapi foto lama tetap bisa dilihat dan diekspor; peringatan di 80% dan 100%; yang dihitung: file asli + hasil edit + rontgen (thumbnail tidak); pasien demo tidak dihitung; batas dicek di server; akun ditangguhkan = hanya baca, data tetap disimpan (retensi) | MVP |
+| FR-29 | Akun | Workspace praktik: dokter pemilik akun **Premium** mengundang asisten lewat email. Akun Free tidak bisa mengundang asisten | Asisten hanya melihat pasien workspace yang mengundangnya; undangan bisa dicabut; tombol undang tidak tersedia di akun Free | MVP |
+| FR-30 | Pasien | Dental Photo ID (DPID) dibuat otomatis untuk setiap pasien (lihat 5.2) | Unik global, tidak pernah berubah, tidak diturunkan dari data pribadi; tampil di sheet pasien; bisa disalin | MVP |
+| FR-31 | Pasien | Dashboard dokter: daftar pasien urut nama, dikelompokkan per huruf + indeks A–Z, kolom pencarian, tombol tambah pasien (lihat 5.4) | 1.000 pasien tetap lancar digulir; pencarian sesuai FR-01 | MVP |
+| FR-32 | Pasien | Sheet pasien: foto profil (EO-01 terbaru), nama, tanggal lahir, email, no. HP, DPID, No. RM; menu Galeri dan Arsip; tombol + mulai sesi foto; tombol Ubah | Ubah data tercatat di audit log; DPID tidak bisa diubah | MVP |
+| FR-33 | Galeri | Arsip pasien: daftar sesi urut tanggal kontrol terbaru, tiap baris berisi tanggal, tahap, keterangan dokter, jumlah foto; ketuk untuk detail foto sesi | Keterangan bisa diubah dokter; sesi draft ditandai | MVP |
 
 **Peran pengguna**
 
-- **Dokter**: semua akses pada pasiennya, generate dan export report.
-- **Asisten/perawat**: buat sesi, capture, upload, review; tidak bisa export atau menghapus.
-- **Admin klinik**: kelola pengguna, template, konfigurasi integrasi RME; tidak melihat foto kecuali diberi akses.
+- **Dokter (pemilik workspace)**: semua akses pada pasien workspace-nya, generate dan export report, undang/cabut asisten, kelola template dan integrasi RME.
+- **Asisten/perawat**: buat sesi, capture, upload, review di workspace yang mengundangnya; tidak bisa export atau menghapus.
+- **Admin platform**: verifikasi akun dokter; tidak melihat data pasien.
 
 **Catatan kritis.** FR-11 (ghost overlay) ditaruh v1.1 bukan karena kurang penting, tetapi karena butuh data sesi sebelumnya; pada minggu-minggu pertama setelah go-live belum ada foto pembanding. Jika klinik memigrasi arsip foto lama lewat upload, naikkan FR-11 ke MVP.
 
@@ -140,6 +150,50 @@ Rekomendasi: sistem foto membaca data pasien langsung dari Google Sheets lewat S
 - Konfirmasi identitas di layar (nama + tanggal lahir) sebelum sesi foto dimulai.
 
 **Jangan bangun sistem foto di atas GAS juga.** Web app GAS berjalan di dalam iframe sandbox milik Google, sehingga akses kamera, instalasi PWA, dan kontrol penyimpanan file jauh lebih terbatas dibanding web app biasa. \[medium confidence — berdasarkan pengetahuan umum HtmlService; perlu uji bila opsi ini tetap ingin dipertimbangkan\]
+
+### 5.2 Identitas pasien: Dental Photo ID dan No. RM
+
+Aplikasi berdiri sendiri, jadi kunci pasien adalah **Dental Photo ID (DPID)** milik aplikasi, bukan No. RM. No. RM hanya unik di dalam satu klinik/RME, dan satu pasien bisa punya No. RM berbeda di klinik berbeda.
+
+- **Format usulan:** `DP-XXXX-XXXX`: 7 karakter acak base32 Crockford (tanpa I, L, O, U) + 1 karakter checksum. Kode acak, bukan urutan dan bukan dari nama/tanggal lahir, sehingga tidak membocorkan data dan tidak bisa ditebak. Checksum menangkap salah ketik saat DPID diketik ulang di RME.
+- **Kunci internal:** UUID di database; DPID adalah kunci yang dibagikan ke luar (RME, report, nama file ekspor).
+- **No. RM:** disimpan sebagai pasangan *sistem + nilai* (tabel `patient_external_id`), opsional, diisi manual atau sinkron (FR-03). Satu pasien bisa punya beberapa No. RM dari sistem berbeda.
+- **Integrasi RME nanti (FR-24):** RME menyimpan DPID di data pasiennya; aplikasi menyimpan No. RM. Pencocokan selalu memakai pasangan ini, bukan nama.
+
+### 5.3 Akun dokter, verifikasi, dan workspace
+
+**Tingkat akun (MVP, belum ada pembayaran):**
+
+| | Free | Premium |
+| --- | --- | --- |
+| Siapa | Dokter luar klinik yang mau mencoba | Dokter klinik (ditetapkan admin) dan dokter luar yang lolos verifikasi |
+| Cara dapat | Daftar sendiri (email atau Google) | Admin developer menetapkan, atau dokter mengajukan dengan STR/SIP lalu disetujui admin developer |
+| Batas pasien | 50 per workspace | Tanpa batas |
+| Penyimpanan | 5 GB per workspace (±8 pasien sepanjang perawatan penuh, atau 50 pasien untuk beberapa sesi awal) | Tanpa batas |
+| Asisten | Tidak bisa mengundang asisten | Bisa mengundang asisten |
+| Fitur foto, galeri, report | Sama dengan Premium | Semua fitur |
+| Biaya | Gratis selama masa uji 1–2 tahun | Gratis selama masa uji 1–2 tahun |
+
+**Alur:**
+
+1. Dokter mendaftar dengan email + kata sandi atau **Login dengan Google**, memverifikasi email, menyatakan dirinya dokter gigi berizin, dan menyetujui syarat layanan. Akun mulai sebagai **Free**.
+2. Dokter mengisi profil (nama, nama praktik) dan menjadi pemilik **workspace**. Hanya akun Premium yang bisa mengundang asisten.
+3. Untuk naik ke **Premium**, dokter mengunggah STR (dan SIP bila ada); **admin developer** meninjau dan mengubah status. Dokter klinik langsung ditetapkan Premium oleh admin.
+4. Data pasien terisolasi per workspace. Berbagi pasien antar dokter/workspace (rujukan) **tidak** ada (keputusan 10 Okt).
+
+**Catatan kritis.** Akun Free belum terverifikasi tetapi sudah menyimpan foto wajah dan rontgen pasien sungguhan. Batas 50 pasien membatasi dampak, bukan menghilangkan risiko. Mitigasi minimum: email terverifikasi, pernyataan dokter berizin + syarat layanan tercatat, admin bisa menangguhkan akun, dan semua akses tercatat di audit log. Karena dokter luar ikut sejak MVP, syarat layanan, perjanjian pemrosesan data, dan pendaftaran PSE (Bagian 9) menjadi syarat **sebelum akun Free dibuka**, bukan v1.1.
+
+Verifikasi STR di MVP manual oleh admin platform. Pengecekan otomatis ke registri STR KKI dipertimbangkan nanti bila tersedia API resmi. \[low confidence soal ketersediaan API registri; perlu verifikasi\]
+
+### 5.4 Layar utama
+
+| Layar | Isi | Acuan |
+| --- | --- | --- |
+| Dashboard dokter | Header nama dokter, menu, tombol +; kolom Search; daftar pasien urut nama dengan pemisah huruf (A, B, ...) dan indeks huruf di sisi kanan; tiap baris: foto profil, nama (nama belakang tebal), tanggal lahir | FR-31, contoh layar dari dokter |
+| Sheet pasien | Foto profil, nama, tanggal lahir, email, no. HP, DPID, No. RM; tombol Ubah; bar bawah: Galeri, tombol + (mulai sesi foto), Arsip | FR-32 |
+| Galeri | Foto pasien dikelompokkan per kategori (wajah, kiri, depan, kanan, oklusal atas/bawah, rontgen) dengan filter tahap/tanggal | FR-15 |
+| Arsip | Daftar sesi per tanggal kontrol: tanggal, tahap (Awal/Insersi/Kontrol ke-n/Lepas), keterangan, jumlah foto; ketuk untuk detail | FR-33 |
+| Tambah/ubah pasien | Nama, tanggal lahir, email, no. HP, No. RM (opsional), jenis kelamin (opsional) | FR-02 |
 
 ## 6. Modul capture dengan guide positioning
 
@@ -209,9 +263,15 @@ Setiap foto terikat ke rantai Pasien → Kasus → Sesi → Slot, sehingga tag p
 
 | Entitas | Field utama | Catatan |
 | --- | --- | --- |
-| patient | id, clinic\_id, no\_rm (unik per klinik), nama, tgl\_lahir, jenis\_kelamin, no\_hp, source (manual/rme), rme\_synced\_at | Field dari RME read-only |
+| user | id, email, nama, auth\_provider (password/google), email\_verified\_at, status | Akun dokter, asisten, admin platform |
+| dentist\_verification | id, user\_id, no\_str, file\_str\_url, file\_sip\_url, status (menunggu/disetujui/ditolak), alasan, ditinjau\_oleh, ditinjau\_at | Pengajuan upgrade ke Premium |
+| workspace | id, nama\_praktik, pemilik\_user\_id, plan (free/premium), batas\_pasien (50/null), batas\_penyimpanan\_bytes (5 GB/null), terpakai\_bytes, status (aktif/ditangguhkan), plan\_diubah\_oleh, plan\_diubah\_at | Unit isolasi data (pengganti clinic\_id); batas pasien dicek di server |
+| terms\_acceptance | user\_id, versi\_syarat, pernyataan\_dokter (bool), disetujui\_at, ip/perangkat | Bukti persetujuan syarat layanan |
+| workspace\_member | workspace\_id, user\_id, peran (dokter/asisten), diundang\_oleh, status | Peran per workspace |
+| patient | id (UUID), dpid (unik global, tetap), workspace\_id, nama, tgl\_lahir, email, no\_hp, jenis\_kelamin (opsional), avatar\_photo\_id | DPID tidak pernah berubah |
+| patient\_external\_id | patient\_id, sistem (mis. rme\_klinik\_x), nilai (No. RM), source (manual/sync), synced\_at | Unik per (workspace, sistem, nilai) |
 | ortho\_case | id, patient\_id, tipe\_behel, tgl\_pemasangan, tgl\_lepas, dokter\_id, status | Satu pasien bisa banyak kasus |
-| session | id, case\_id, tahap (awal/insersi/kontrol/lepas/retensi), nomor\_kontrol, tgl\_sesi, status (draft/lengkap), dibuat\_oleh | Tahap menentukan template slot |
+| session | id, case\_id, tahap (awal/insersi/kontrol/lepas/retensi), nomor\_kontrol, tgl\_sesi, keterangan, status (draft/lengkap), dibuat\_oleh | Tahap menentukan template slot; keterangan tampil di Arsip |
 | slot\_template | id, tahap, kode\_slot, label, wajib, urutan, overlay\_id | Konfigurasi, bisa diubah admin |
 | photo | id, session\_id, kode\_slot, kategori, sumber (kamera/upload), file\_asli\_url, file\_edit\_url, edit\_params (JSON), lebar, tinggi, perangkat, diambil\_oleh, diambil\_at, diganti\_oleh\_photo\_id, hash\_sha256 | Asli tidak pernah ditimpa |
 | consent | id, patient\_id, jenis (dokumentasi klinis/edukasi/publikasi), tgl, berlaku\_sampai, file\_bukti\_url | Mengunci fitur anonimisasi dan share |
@@ -289,6 +349,7 @@ Foto klinis dan rontgen pasien adalah bagian rekam medis, sehingga sistem ini ha
 | --- | --- | --- |
 | [Permenkes 24/2022 tentang Rekam Medis](https://pasal.id/peraturan/permen/permenkes-no-24-tahun-2022) | Fasyankes wajib menyelenggarakan RME; penyimpanan harus menjamin keamanan, keutuhan, kerahasiaan, dan ketersediaan data | Enkripsi, kontrol akses, audit log, backup, hash file (keutuhan) |
 | Permenkes 24/2022 Pasal 39 | [Retensi RME paling singkat 25 tahun sejak kunjungan terakhir pasien](https://medminutes.io/blog/retensi-pemusnahan-rekam-medis-elektronik-permenkes-24-2022/) | Tidak ada hapus permanen oleh pengguna; arsip dingin (cold storage) untuk biaya; estimasi kapasitas jangka panjang |
+| Aplikasi mandiri untuk banyak dokter | Karena akun Free dibuka untuk dokter luar sejak MVP, platform kemungkinan menjadi Penyelenggara Sistem Elektronik lingkup privat yang wajib terdaftar; dokter/praktik = pengendali data pasien, platform = prosesor \[medium confidence; this needs verification oleh konsultan hukum\] | Pendaftaran PSE; syarat layanan + perjanjian pemrosesan data dengan tiap dokter; ekspor data pasien bila dokter berhenti berlangganan |
 | UU 27/2022 tentang Pelindungan Data Pribadi | Data kesehatan dan data biometrik termasuk data pribadi yang bersifat spesifik \[medium confidence — dari ingatan, belum dibuka sumbernya di riset ini; this needs verification oleh konsultan hukum\] | Dasar pemrosesan + persetujuan tercatat; hak akses dan koreksi pasien; prosedur notifikasi kebocoran |
 
 **Kebutuhan keamanan (MVP)**
@@ -322,6 +383,11 @@ Risiko terbesar bukan di pengembangan software, melainkan di dua hal: kualitas k
 | API RME tidak tersedia atau tidak terdokumentasi | Sedang: input manual ganda | Sedang | Input manual sebagai default; adapter terpisah |
 | Foto hilang di antrian offline iOS | Tinggi: data rekam medis hilang | Rendah–sedang | Indikator unggah, blokir tutup sesi sebelum terunggah |
 | Foto pasien bocor (HP staf, link share) | Sangat tinggi: hukum dan reputasi | Sedang | URL kedaluwarsa, hapus lokal, consent gate, audit log |
+| Akun Free palsu (bukan dokter gigi) menyimpan foto wajah/rontgen pasien | Tinggi: hukum dan reputasi | Sedang (pendaftaran terbuka tanpa verifikasi) | Batas 50 pasien; email terverifikasi; pernyataan dokter berizin + syarat layanan tercatat; admin bisa menangguhkan; audit log. Opsi lebih ketat: akun Free hanya pasien demo sampai diverifikasi |
+| Layanan gratis (Free dan Premium) selama masa uji 1–2 tahun tetapi retensi foto 25 tahun | Sedang–tinggi: biaya penyimpanan ditanggung platform tanpa pemasukan | Tinggi bila banyak dokter luar bergabung | Batas 50 pasien dan 5 GB untuk Free; aturan akhir masa uji tertulis di syarat layanan; ukur biaya per pasien per tahun di MVP; kompresi turunan + cold storage; putuskan harga Premium sebelum banyak dokter luar |
+| Akun Free ditinggalkan dengan data pasien | Sedang: data tetap wajib disimpan, tanpa pemilik aktif | Sedang | Kebijakan akun tidak aktif di syarat layanan; ekspor data untuk dokter; kontak admin |
+| Kebocoran data antar workspace | Sangat tinggi | Rendah–sedang | Isolasi per workspace di level database (row-level security), uji otomatis akses lintas workspace |
+| Pasien duplikat (input manual tanpa No. RM) | Sedang: foto terpecah di dua pasien | Sedang | Peringatan nama + tanggal lahir sama; fitur gabung pasien (v1.1) |
 | Biaya penyimpanan membengkak (retensi 25 tahun) | Sedang | Tinggi dalam jangka panjang | Kompresi turunan, cold storage untuk kasus selesai |
 | RME berbasis GAS + Google Sheets: pengguna dengan akses Editor bisa mengubah/menghapus baris langsung di sheet tanpa lewat ERP; tidak ada constraint unik No. RM; kepatuhan audit/keutuhan Permenkes 24/2022 bergantung pada edisi Google Workspace dan pengaturan akses | Tinggi: risiko kepatuhan dan foto tertaut ke pasien yang salah | Sedang–tinggi | Integrasi opsi B di 5.1 (read-only); konfirmasi identitas sebelum sesi; batasi akses Editor sheet hanya ke admin; cek apakah klinik memakai Google Workspace berbayar (log audit Drive, kebijakan berbagi) dan lokasi data \[this needs verification\]; evaluasi migrasi RME ke database sebagai proyek terpisah |
 
@@ -340,14 +406,27 @@ Risiko terbesar bukan di pengembangan software, melainkan di dua hal: kualitas k
 1. **Semua perangkat iPhone mengubah keputusan teknologi.** Alasan utama PWA (staf campur Android/iPhone) tidak berlaku lagi, dan iPhone adalah platform terlemah untuk kamera berbasis web. Lihat Bagian 8.0.
 2. **RME berbasis spreadsheet bukan API.** FR-03 diubah menjadi lookup ke spreadsheet; risiko kepatuhan ditambahkan ke 10.1.
 3. **Consent publikasi dan anonimisasi (FR-22) naik ke MVP**; template report progres pasien ditambahkan sebagai FR-26 (MVP).
-4. **Multi-klinik tidak diperlukan.** Satu klinik, 2 dokter: tidak perlu arsitektur multi-tenant di v1, cukup kolom clinic\_id agar ekspansi tetap mungkin.
+4. ~~**Multi-klinik tidak diperlukan.**~~ **Diganti revisi 10 Okt:** aplikasi dipakai dokter dari mana saja, jadi isolasi data per workspace (multi-tenant) wajib sejak MVP (Bagian 5.3).
 5. **Label EO-03 diseragamkan** menjadi "Profil kanan pasien (standar ABO)".
+
+**Pertanyaan terbuka dari revisi 10 Okt**
+
+- [x] Email dan no. HP pasien dipakai untuk apa? **Jawaban:** tidak dipakai untuk mengirim apa pun; hanya data kontak/identitas.
+- [x] Apakah satu pasien bisa dibagikan ke dokter lain (rujukan)? **Jawaban:** tidak.
+- [x] Siapa yang memverifikasi STR? **Jawaban:** tidak wajib untuk mulai memakai; verifikasi STR oleh admin hanya untuk upgrade ke Premium (FR-28).
+- [x] Gratis atau berlangganan? **Jawaban:** gratis untuk sementara, dengan tingkat **Free** (maks. 50 pasien) untuk dokter luar yang mencoba dan **Premium** (tanpa batas) setelah diverifikasi admin. Belum ada pembayaran. Risiko biaya dicatat di 10.1.
+- [x] Apakah akun Free boleh mengundang asisten? **Jawaban:** tidak.
+- [x] Perlu batas penyimpanan selain 50 pasien? **Jawaban:** ya, 5 GB untuk akun Free.
+- [x] Siapa yang meninjau pengajuan Premium? **Jawaban:** admin developer. Program gratis (Free dan Premium) berjalan sebagai masa uji 1–2 tahun.
+- [ ] Target waktu tinjau pengajuan Premium (mis. 3 hari kerja)?
+- [ ] Setelah masa uji 1–2 tahun selesai: apa yang terjadi pada akun Free dan Premium yang tidak membayar? Foto tetap wajib disimpan 25 tahun, jadi pilihan realistis: akun menjadi hanya baca + ekspor, bukan dihapus. Harus tertulis di syarat layanan sejak awal.
+- [x] Jenis kelamin pasien? **Jawaban:** tetap opsional.
 
 ### 10.3 Urutan rilis yang disarankan
 
 1. **Fase 0 — PoC kamera (1–2 minggu):** uji 8 foto di iPhone dan Android via PWA vs kamera native; keputusan go/no-go untuk capture langsung di iOS.
-2. **MVP:** pasien manual + kasus + sesi, capture dengan overlay generik, upload, rontgen upload, galeri per kategori, case report PDF, report progres pasien (FR-26), peran dan audit log, consent tiga level termasuk publikasi, anonimisasi report untuk media sosial.
-3. **v1.1:** ghost overlay, timeline, slider/toggle compare, antrian offline, deteksi wajah ekstraoral, lookup otomatis ke spreadsheet RME.
+2. **MVP:** registrasi + login Google, akun Free (50 pasien) / Premium (verifikasi admin), workspace, syarat layanan, dashboard pasien, sheet pasien dengan Dental Photo ID (No. RM opsional), Galeri dan Arsip, kasus + sesi, capture dengan overlay generik, upload, rontgen upload, galeri per kategori, case report PDF, report progres pasien (FR-26), peran dan audit log, consent tiga level termasuk publikasi, anonimisasi report untuk media sosial.
+3. **v1.1:** pembayaran Premium (bila diputuskan), ghost overlay, timeline, slider/toggle compare, antrian offline, deteksi wajah ekstraoral, lookup otomatis ke spreadsheet RME.
 4. **v2:** kirim balik ke RME, deteksi otomatis kualitas intraoral, DICOM, analitik klinik.
 
 Estimasi durasi tiap fase tidak dicantumkan karena bergantung pada ukuran tim dan hasil PoC; angka apa pun sekarang akan menjadi tebakan.
