@@ -2,6 +2,7 @@
 // v2: garis bantu gigi/wajah (slots.v2.json), mode cermin, galeri.
 // v2.1: garis bantu mengikuti rotasi HP (portrait/landscape), juga saat kunci rotasi iOS aktif.
 // v2.3: kamera multi-lensa otomatis + tombol zoom di layar (diingat per slot).
+// v2.4: mode 'lensa utama saja' (fokus tidak berubah saat zoom) + tombol Kunci fokus bila browser mendukung.
 // Tanpa server dan tanpa database: foto + log disimpan di IndexedDB HP ini,
 // lalu diekspor sebagai ZIP (photos/*.jpg, log.csv, log.json).
 
@@ -14,7 +15,7 @@ const el = Object.fromEntries([
   'levelBtn', 'summary', 'onlySubject', 'prepZip', 'shareZip', 'zipInfo', 'clearSubject', 'copyDiag',
   'diag', 'toast', 'galleryBtn', 'galleryLabel', 'mirrorBtn', 'gallery', 'galScope', 'galSlot', 'galClose',
   'galBody', 'viewer', 'viewClose', 'viewTitle', 'viewDelete', 'viewStage', 'viewImg', 'viewPrev', 'viewMeta',
-  'viewNext', 'zoomBar',
+  'viewNext', 'zoomBar', 'focusBtn',
 ].map((id) => [id, $(id)]));
 
 const PRESETS = {
@@ -33,6 +34,10 @@ const ZOOM_STEPS = [1, 2, 3, 4, 5]; // kelipatan terhadap lensa utama (1×), sep
 // Kamera virtual iPhone yang menggabungkan beberapa lensa. iOS memilih lensa sendiri sesuai zoom dan jarak fokus,
 // jadi lensa tele tidak dipakai saat objek terlalu dekat (masalah saat memilih kamera tele langsung).
 const MULTI_CAM = [/triple|tiga/i, /dual wide|lebar ganda|ganda lebar/i, /dual|ganda/i];
+// Pilihan otomatis di daftar kamera. 'main' = hanya lensa utama: zoom = crop digital lensa yang sama,
+// jadi zoom tidak memicu pindah lensa dan fokus ulang.
+const LENS_AUTO = { multi: 'Otomatis: multi-lensa (iOS pilih lensa)', main: 'Otomatis: lensa utama saja (fokus stabil saat zoom)' };
+const NOT_MAIN = /front|depan|tele|ultra|wide|lebar|dual|ganda|triple|tiga/i;
 const HAS_ULTRA_WIDE = /triple|tiga|dual wide|lebar ganda|ganda lebar/i; // zoom 1 = ultra wide (0,5×)
 
 const state = {
@@ -51,7 +56,8 @@ const state = {
   level: { on: false, roll: null, pitch: null, g: null },
   // Rotasi fisik HP dari sensor gravitasi. rel = selisih dengan rotasi layar (kunci rotasi aktif).
   turn: { sign: 0, hand: 0, phys: null, rel: 0 },
-  autoDeviceId: null,   // kamera pilihan otomatis (multi-lensa bila ada)
+  autoDeviceId: null,   // kamera hasil pilihan otomatis (multi-lensa atau lensa utama)
+  focus: { locked: false, distance: null, mode: null },
   zoomBase: 1,          // nilai zoom kamera untuk 1×
   zoomBySlot: {},       // zoom terakhir per slot, dalam kelipatan 1×
   mirrorBySlot: {},     // status tombol Cermin per slot (default dari slots.v2.json)
@@ -129,6 +135,8 @@ async function init() {
   el.preset.value = PRESETS[prefs.preset] ? prefs.preset : '4032x3024';
   el.opacity.value = prefs.opacity || '0.9';
   state.zoomBySlot = prefs.zoomBySlot || {};
+  el.cameraSelect.replaceChildren(...Object.entries(LENS_AUTO).map(([v, t]) => new Option(t, v)));
+  el.cameraSelect.value = LENS_AUTO[prefs.lensMode] ? prefs.lensMode : 'multi';
   applyOpacity();
 
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
@@ -189,7 +197,8 @@ function bind() {
   el.viewNext.addEventListener('click', () => showInViewer(state.gallery.index + 1));
   el.viewDelete.addEventListener('click', deleteCurrent);
   bindSwipe(el.viewStage);
-  el.cameraSelect.addEventListener('change', startCamera);
+  el.cameraSelect.addEventListener('change', () => { state.autoDeviceId = null; savePrefs(); startCamera(); });
+  el.focusBtn.addEventListener('click', () => (state.focus.locked ? unlockFocus() : lockFocus()));
   el.preset.addEventListener('change', () => { savePrefs(); startCamera(); });
   el.zoom.addEventListener('input', () => { el.zoomOut.value = Number(el.zoom.value).toFixed(2); });
   el.zoom.addEventListener('change', () => setZoomX(Number(el.zoom.value) / state.zoomBase));
@@ -236,8 +245,10 @@ async function startCamera() {
   stopCamera();
   el.shutter.disabled = true;
   const [w, h] = PRESETS[el.preset.value];
-  const auto = !el.cameraSelect.value;
-  const deviceId = el.cameraSelect.value || state.autoDeviceId;
+  const lens = el.cameraSelect.value;
+  const auto = !!LENS_AUTO[lens];
+  const deviceId = auto ? state.autoDeviceId : lens;
+  state.focus = { locked: false, distance: null, mode: null }; // track baru: fokus kembali otomatis
   const video = {
     width: { ideal: w },
     height: { ideal: h },
@@ -260,11 +271,11 @@ async function startCamera() {
   await waitForVideo();
   await refreshCameras();
   if (auto && !state.autoDeviceId) {
-    // Label kamera baru terbaca setelah izin diberikan; pindah ke kamera multi-lensa bila ada.
-    const multi = findMultiCamera();
-    if (multi) {
-      state.autoDeviceId = multi.deviceId;
-      if (multi.deviceId !== state.track.getSettings().deviceId) return startCamera();
+    // Label kamera baru terbaca setelah izin diberikan; pindah ke kamera yang sesuai pilihan otomatis bila ada.
+    const cam = lens === 'main' ? findMainCamera() : findMultiCamera();
+    if (cam) {
+      state.autoDeviceId = cam.deviceId;
+      if (cam.deviceId !== state.track.getSettings().deviceId) return startCamera();
     }
   }
   renderControls();
@@ -305,10 +316,15 @@ async function refreshCameras() {
   state.cameras = devices.map((d) => ({ label: d.label, deviceId: d.deviceId }));
   const chosen = el.cameraSelect.value;
   el.cameraSelect.replaceChildren(
-    new Option('Otomatis (kamera multi-lensa bila ada)', ''),
+    ...Object.entries(LENS_AUTO).map(([v, t]) => new Option(t, v)),
     ...devices.map((d, i) => new Option(d.label || `Kamera ${i + 1}`, d.deviceId)),
   );
-  el.cameraSelect.value = devices.some((d) => d.deviceId === chosen) ? chosen : '';
+  el.cameraSelect.value = LENS_AUTO[chosen] || devices.some((d) => d.deviceId === chosen) ? chosen : 'multi';
+}
+
+/* Lensa utama (wide 1×). iOS: "Back Camera". Android: label sering tidak jelas, jadi pakai kamera belakang bawaan. */
+function findMainCamera() {
+  return state.cameras.find((c) => /back|belakang|rear/i.test(c.label) && !NOT_MAIN.test(c.label)) || null;
 }
 
 function findMultiCamera() {
@@ -346,6 +362,61 @@ function renderControls() {
 
   el.torchRow.hidden = !('torch' in caps);
   el.torch.checked = !!s.torch;
+  renderFocusBtn();
+}
+
+/* ---------- Kunci fokus ---------- */
+// Hanya tampil bila browser memberi kontrol fokus (umumnya Chrome Android; Safari iOS belum).
+
+function focusSupport() {
+  const caps = state.track?.getCapabilities?.() || {};
+  const modes = Array.isArray(caps.focusMode) ? caps.focusMode : [];
+  return { modes, distance: caps.focusDistance || null, canLock: modes.includes('manual') || modes.includes('single-shot') };
+}
+
+function renderFocusBtn() {
+  el.focusBtn.hidden = !focusSupport().canLock;
+  el.focusBtn.setAttribute('aria-pressed', String(state.focus.locked));
+  el.focusBtn.textContent = state.focus.locked ? 'Fokus: terkunci' : 'Kunci fokus';
+}
+
+async function lockFocus() {
+  const sup = focusSupport();
+  if (!sup.canLock) return;
+  const d = state.track.getSettings().focusDistance;
+  // Paling stabil: manual pada jarak fokus saat ini. Bila jarak tidak tersedia: single-shot (fokus sekali, lalu tahan).
+  const constraint = sup.modes.includes('manual') && sup.distance && d != null
+    ? { focusMode: 'manual', focusDistance: d }
+    : { focusMode: sup.modes.includes('single-shot') ? 'single-shot' : 'manual' };
+  if (!(await tryAdvanced(constraint))) { toast('Kamera menolak kunci fokus.'); return; }
+  state.focus = { locked: true, distance: constraint.focusDistance ?? null, mode: constraint.focusMode };
+  renderFocusBtn();
+  toast('Fokus terkunci. Zoom tidak akan mengubah fokus.');
+}
+
+async function unlockFocus() {
+  const { modes } = focusSupport();
+  if (modes.includes('continuous')) await tryAdvanced({ focusMode: 'continuous' });
+  state.focus = { locked: false, distance: null, mode: null };
+  renderFocusBtn();
+}
+
+/* Beberapa kamera Android mengulang fokus setelah zoom; pasang lagi kunci yang sama. */
+async function reapplyFocusLock() {
+  const f = state.focus;
+  if (!f.locked) return;
+  await tryAdvanced(f.distance != null ? { focusMode: 'manual', focusDistance: f.distance } : { focusMode: f.mode });
+}
+
+async function tryAdvanced(constraint) {
+  try {
+    await state.track.applyConstraints({ advanced: [constraint] });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    updateDiag();
+  }
 }
 
 function renderZoomBar() {
@@ -373,6 +444,7 @@ async function setZoomX(x, remember = true) {
   if (!range) return;
   const z = Math.min(range.max, Math.max(range.min, x * state.zoomBase));
   await applyAdvanced({ zoom: z });
+  await reapplyFocusLock();
   if (remember && state.slot) {
     state.zoomBySlot[state.slot.code] = x;
     savePrefs();
@@ -404,6 +476,7 @@ function selectSlot(code) {
   el.level.hidden = !(state.level.on && state.slot.level);
   applyMirrorPreview();
   layoutOverlay();
+  if (state.focus.locked) unlockFocus(); // slot lain = jarak objek lain; kunci ulang setelah posisi pas
   const saved = state.zoomBySlot[code];
   if (saved != null && state.track) setZoomX(saved, false);
 }
@@ -599,7 +672,10 @@ async function capture() {
       settings,
       zoom: settings.zoom ?? null,
       zoom_x: settings.zoom != null ? Math.round((settings.zoom / state.zoomBase) * 100) / 100 : null,
-      camera_auto: !el.cameraSelect.value,
+      camera_auto: !!LENS_AUTO[el.cameraSelect.value],
+      lens_mode: LENS_AUTO[el.cameraSelect.value] ? el.cameraSelect.value : 'manual',
+      focus_locked: state.focus.locked,
+      focus_distance: settings.focusDistance ?? null,
       torch: settings.torch ?? null,
       focus_mode: settings.focusMode ?? null,
       orientation: w > h ? 'landscape' : 'portrait',
@@ -770,7 +846,8 @@ function updateTurn(g, mag) {
 
 const CSV_COLUMNS = [
   'timestamp', 'subject', 'device_label', 'mode', 'slot', 'rep', 'filename', 'width', 'height', 'file_bytes',
-  'camera_label', 'camera_auto', 'requested_preset', 'zoom', 'zoom_x', 'torch', 'focus_mode', 'orientation',
+  'camera_label', 'camera_auto', 'lens_mode', 'requested_preset', 'zoom', 'zoom_x', 'torch', 'focus_mode',
+  'focus_locked', 'focus_distance', 'orientation',
   'orientation_ok', 'screen_orientation', 'rotation_applied',
   'level_on', 'level_roll', 'level_pitch', 'level_ok', 'mirror_applied', 'since_slot_open_ms', 'capture_ms',
   'standalone', 'imagecapture_available', 'overlay_version',
@@ -875,7 +952,9 @@ function updateDiag() {
     requested: state.requested,
     video_frame: { width: el.video.videoWidth, height: el.video.videoHeight },
     track_label: t?.label ?? null,
-    camera_auto: !el.cameraSelect.value,
+    camera_auto: !!LENS_AUTO[el.cameraSelect.value],
+    lens_mode: el.cameraSelect.value,
+    focus_lock: state.focus,
     zoom_base: state.zoomBase,
     settings: t?.getSettings?.() ?? null,
     capabilities: t?.getCapabilities?.() ?? null,
@@ -1087,6 +1166,7 @@ function savePrefs() {
       preset: el.preset.value,
       opacity: el.opacity.value,
       zoomBySlot: state.zoomBySlot,
+      lensMode: LENS_AUTO[el.cameraSelect.value] ? el.cameraSelect.value : undefined,
     }));
   } catch { /* abaikan */ }
 }

@@ -13,6 +13,18 @@ waterpass, panel diagnostik, dan ekspor ZIP. Tidak ada server dan database; foto
 | `slots.v2.json` | 11 slot (8 wajib + 3 tambahan) dan garis bantu. **Dibuat oleh generator**, jangan diedit manual |
 | `tools/gen_slots.py` | Generator garis bantu gigi/wajah. Ubah ukuran/posisi di sini lalu jalankan `python3 tools/gen_slots.py` |
 
+## Perubahan v2.4 (masukan dokter: fokus berubah saat zoom)
+
+- **Pengaturan > Lensa / kamera** kini punya dua pilihan otomatis (pilihan diingat):
+  - *Otomatis: multi-lensa* (default): iOS memilih lensa. Saat zoom melewati lensa tele (3× di 13 Pro Max,
+    4× di 17 Pro Max) iOS pindah lensa dan fokus ulang; ini tidak bisa dicegah dari web.
+  - *Otomatis: lensa utama saja*: semua zoom 1×–5× adalah crop dari lensa utama yang sama, jadi zoom tidak
+    mengubah fokus. Tanpa tele optik, tetapi pada jarak 20–30 cm iPhone umumnya memakai lensa utama juga.
+- Tombol **Kunci fokus** di samping tombol foto: fokus sekali lalu ditahan, juga setelah zoom. Hanya tampil bila
+  browser memberi kontrol fokus (umumnya Chrome Android). Safari iOS kemungkinan tidak memberi kontrol fokus (cek di iPhone), jadi
+  di iPhone tombol ini tidak muncul; pakai mode lensa utama. Kunci dilepas otomatis saat pindah slot.
+- Log menambah `lens_mode`, `focus_locked`, `focus_distance`.
+
 ## Perubahan v2.3 (masukan dokter: lensa tele dan zoom)
 
 - Kamera default kini **Otomatis**: memakai kamera multi-lensa iPhone ("Back Triple Camera" / kamera belakang tiga lensa).

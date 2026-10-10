@@ -225,8 +225,8 @@ button.danger { color: var(--danger); border-color: #5a2d2a; }
   align-items: flex-end;
   gap: 6px;
 }
-#mirrorBtn { padding: 6px 10px; font-size: 13px; }
-#mirrorBtn[aria-pressed="true"] { border-color: var(--guide); color: var(--guide); }
+#mirrorBtn, #focusBtn { padding: 6px 10px; font-size: 13px; }
+#mirrorBtn[aria-pressed="true"], #focusBtn[aria-pressed="true"] { border-color: var(--guide); color: var(--guide); }
 #lastInfo {
   margin: 0;
   font-size: 12px;
