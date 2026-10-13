@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#6B1E2E">
+  <title>Tidak ada koneksi – Dental Photo</title>
+  <style>
+    :root { --bg: #FBF8F6; --text: #2A1518; --muted: #7A5A60; --primary: #6B1E2E; --on-primary: #FBF8F6; color-scheme: light; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #3A0E18; --text: #F3E6E6; --muted: #C9A9AE; --primary: #E9CFCF; --on-primary: #3A0E18; color-scheme: dark; } }
+    body { margin: 0; min-height: 100dvh; display: grid; place-content: center; gap: 16px; padding: 16px; text-align: center;
+           background: var(--bg); color: var(--text); font-family: "Helvetica Neue", Arial, sans-serif; }
+    img { width: 88px; height: 88px; margin: 0 auto; border-radius: 20px; }
+    p { margin: 0; color: var(--muted); }
+    button { min-height: 48px; padding: 0 24px; border: 0; border-radius: 999px; background: var(--primary); color: var(--on-primary); font: inherit; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <img src="/icons/icon-192.png" alt="">
+  <h1 style="margin:0;font-size:22px">Tidak ada koneksi internet</h1>
+  <p>Data pasien tidak disimpan di HP. Sambungkan internet lalu coba lagi.</p>
+  <button type="button" onclick="location.reload()">Coba lagi</button>
+</body>
+</html>

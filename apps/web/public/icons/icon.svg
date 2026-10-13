@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Ikon aplikasi: gigi + bidik kamera. Latar penuh agar aman sebagai ikon maskable. -->
+  <rect width="512" height="512" fill="#6B1E2E"/>
+  <path d="M256 150c-26-22-58-30-86-18-36 16-46 58-38 100 6 30 18 52 24 86 6 34 10 66 30 70 20 4 24-30 34-60 6-18 12-26 36-26s30 8 36 26c10 30 14 64 34 60 20-4 24-36 30-70 6-34 18-56 24-86 8-42-2-84-38-100-28-12-60-4-86 18z" fill="none" stroke="#FBF8F6" stroke-width="18" stroke-linejoin="round"/>
+  <circle cx="256" cy="226" r="34" fill="none" stroke="#B08D57" stroke-width="12"/>
+  <circle cx="256" cy="226" r="8" fill="#B08D57"/>
+</svg>
