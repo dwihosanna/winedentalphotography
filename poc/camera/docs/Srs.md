@@ -306,6 +306,8 @@ Dengan perangkat hanya iPhone 13 Pro Max dan iPhone 17 Pro Max, PWA murni menjad
 
 **Rekomendasi.** Jalankan PoC opsi A vs B pada kedua iPhone untuk 8 foto standar, dinilai blind oleh 2 dokter. Jika A layak untuk ekstraoral tetapi tidak untuk intraoral, pakai kombinasi: A untuk wajah, B untuk intraoral. Jika konsistensi intraoral tetap buruk, pindah ke C. Karena perangkat hanya 2 iPhone milik klinik, distribusi app internal tanpa rilis publik di App Store dimungkinkan (mis. distribusi ad hoc untuk perangkat terdaftar). \[medium confidence — opsi distribusi Apple dan biayanya perlu verifikasi live\]
 
+**Hasil (G0, 13 Okt 2026):** opsi A dipilih untuk semua slot; lihat keputusan G0 di Bagian 11.2.
+
 Perubahan turunan: NFR-01 menjadi "Safari iOS versi 2 rilis terakhir" (Android tidak lagi wajib diuji); NFR-CAM-01 menjadi gerbang keputusan A/B/C, bukan sekadar uji kualitas.
 
 ### 8.1 Perbedaan kemampuan kamera web per platform
@@ -491,6 +493,24 @@ Kriteria ditetapkan sebelum melihat hasil agar keputusan tidak dibentuk oleh pre
 
 **Keluaran Fase 0:** matriks slot × opsi, laporan singkat metrik, dan keputusan tertulis G0. Kode PoC disimpan di repo (folder `poc/`) sebagai referensi, bukan dipromosikan menjadi kode produk.
 
+**Keputusan G0 (13 Okt 2026).** Capture memakai **opsi A (PWA murni: `getUserMedia` + overlay SVG) untuk semua slot**, termasuk intraoral dan oklusal. Opsi B dan C tidak dipakai di deployment awal; `apps/ios` tidak dibuat.
+
+| Slot | Label | Wajib | Opsi |
+| --- | --- | --- | --- |
+| EO-01 | Wajah depan, rest | Ya | A |
+| EO-02 | Wajah depan, senyum | Ya | A |
+| EO-03 | Profil kanan (standar ABO) | Ya | A |
+| IO-01 | Intraoral kiri | Ya | A |
+| IO-02 | Intraoral depan | Ya | A |
+| IO-03 | Intraoral kanan | Ya | A |
+| IO-04 | Oklusal atas | Ya | A |
+| IO-05 | Oklusal bawah | Ya | A |
+| IO-06 | Anterior atas | Tidak | A |
+| IO-07 | Anterior bawah | Tidak | A |
+| FREE | Bebas | Tidak | A |
+
+Daftar slot dan garis bantu mengikuti PoC final (`poc/camera/slots.v2.json`, 11 slot: 8 wajib + 3 tambahan), bukan 8 slot rencana awal. Perilaku kamera PoC v2.5 menjadi acuan produk: default lensa utama (zoom 1×–5× = crop lensa yang sama sehingga fokus stabil), multi-lensa iOS dan lensa manual tetap bisa dipilih di Pengaturan, zoom diingat per slot, dan Kunci fokus bila browser mendukung. Folder `poc/` dibekukan dengan tag `poc-v0`.
+
 ### 11.2.1 Langkah teknis Fase 0
 
 Fase 0 **tidak membutuhkan basis data dan tidak boleh live di production**. Yang dibutuhkan hanya halaman web statis yang otomatis ter-deploy ke URL HTTPS terbatas setiap kali kode di-push. Itu adalah CI/CD ringan, dan cukup untuk menguji kamera di iPhone.
@@ -565,7 +585,7 @@ Gunakan satu repo Git privat (monorepo) dengan trunk-based development: `main` s
 | `apps/api` | Backend: auth, data, storage, integrasi Sheets | Fase 1 |
 | `packages/slots` | Definisi slot dan overlay sebagai data JSON berversi | Fase 0 (dari PoC) |
 | `packages/report` | Template PDF case report dan report progres | Fase 3 |
-| `apps/ios` | Shell hybrid (mis. Capacitor), hanya bila G0 memilih opsi C | Setelah G0 |
+| `apps/ios` | Shell hybrid (mis. Capacitor), hanya bila G0 memilih opsi C. **Tidak dibuat**: G0 memilih opsi A | — |
 | `infra` | Konfigurasi deploy, migrasi database | Fase 1 |
 
 **Aturan branching dan commit**
