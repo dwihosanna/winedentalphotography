@@ -201,20 +201,23 @@ Modul capture adalah wizard berurutan yang mengikuti halaman template case repor
 
 ### 6.1 Slot foto per tahap
 
-| Kode | Slot (label UI) | Halaman template | Awal | Insersi | Kontrol | Lepas |
-| --- | --- | --- | --- | --- | --- | --- |
-| EO-01 | Wajah depan, rest position | Profil Wajah | Wajib | — | Opsional | Wajib |
-| EO-02 | Wajah depan, senyum | Profil Wajah | Wajib | — | Opsional | Wajib |
-| EO-03 | Profil kanan pasien (standar ABO) | Profil Wajah | Wajib | — | Opsional | Wajib |
-| IO-01 | Intraoral kiri (bukal kiri) | Profil Wajah | Wajib | Wajib | Wajib | Wajib |
-| IO-02 | Intraoral depan (frontal) | Profil Wajah | Wajib | Wajib | Wajib | Wajib |
-| IO-03 | Intraoral kanan (bukal kanan) | Profil Wajah | Wajib | Wajib | Wajib | Wajib |
-| IO-04 | Oklusal atas | Profil Wajah | Wajib | Wajib | Wajib | Wajib |
-| IO-05 | Oklusal bawah | Profil Wajah | Wajib | Wajib | Wajib | Wajib |
-| RX-01 | Rontgen panoramik (upload) | Rontgen | Wajib | — | — | Opsional |
-| RX-02 | Rontgen sefalometri (upload) | Rontgen | Wajib | — | — | Opsional |
+| Kode | Slot (label UI) | Halaman template | Awal | Kunjungan berikutnya (Insersi, Kontrol, Lepas, Retensi) |
+| --- | --- | --- | --- | --- |
+| EO-01 | Wajah depan, rest position | Profil Wajah | Wajib | Opsional |
+| EO-02 | Wajah depan, senyum | Profil Wajah | Wajib | Opsional |
+| EO-03 | Profil kanan pasien (standar ABO) | Profil Wajah | Wajib | Opsional |
+| IO-01 | Intraoral kiri (bukal kiri) | Profil Wajah | Wajib | Wajib |
+| IO-02 | Intraoral depan (frontal) | Profil Wajah | Wajib | Wajib |
+| IO-03 | Intraoral kanan (bukal kanan) | Profil Wajah | Wajib | Wajib |
+| IO-04 | Oklusal atas | Profil Wajah | Wajib | Wajib |
+| IO-05 | Oklusal bawah | Profil Wajah | Wajib | Wajib |
+| IO-06 | Anterior atas | — | Wajib | Wajib |
+| IO-07 | Anterior bawah | — | Wajib | Wajib |
+| FREE | Bebas | — | Opsional | Opsional |
+| RX-01 | Rontgen panoramik (upload) | Rontgen | Opsional | Opsional |
+| RX-02 | Rontgen sefalometri (upload) | Rontgen | Opsional | Opsional |
 
-Kolom Wajib/Opsional adalah usulan default dan harus dikonfirmasi dokter; template tahap disimpan sebagai konfigurasi, bukan kode. "Foto Setelah Insersi" di template = slot IO-01 s.d. IO-05 pada sesi bertahap Insersi.
+Aturan EO/IO/FREE dikonfirmasi dokter 13 Okt 2026: sesi Awal wajib EO-01–03 dan IO-01–07; kunjungan berikutnya wajib IO-01–07, EO opsional; FREE selalu opsional. Rontgen opsional di semua tahap dan bisa diunggah di kunjungan berikutnya. Template tahap disimpan sebagai konfigurasi, bukan kode. "Foto Setelah Insersi" di template = slot IO-01 s.d. IO-05 pada sesi bertahap Insersi.
 
 ### 6.2 Spesifikasi overlay guide per slot
 
@@ -282,7 +285,7 @@ Setiap foto terikat ke rantai Pasien → Kasus → Sesi → Slot, sehingga tag p
 
 **Metadata EXIF.** Sistem membaca EXIF dari file upload (tanggal ambil, perangkat) untuk peringatan bila tanggal foto jauh dari tanggal sesi, tetapi **menghapus EXIF lokasi GPS** sebelum menyimpan. Foto hasil capture browser biasanya tidak membawa EXIF kamera yang lengkap, sehingga parameter perangkat dicatat oleh aplikasi. \[medium confidence\]
 
-**Basis data dan penyimpanan (rencana 13 Okt 2026, belum final).** Basis data MySQL di Hostinger; file foto di cloud hosting, bukan di server database. MySQL tidak punya row-level security, jadi isolasi workspace (Bagian 10.1) harus ditegakkan di lapisan aplikasi: setiap query wajib difilter `workspace_id`, plus uji otomatis akses lintas workspace.
+**Stack dan hosting (diputuskan 13 Okt 2026).** Satu aplikasi Laravel (PHP, MVC: Eloquent + Blade + controller) dengan MySQL di Hostinger Cloud Startup. File foto disimpan di disk hosting (disk privat Laravel, di luar folder publik) lewat abstraksi Filesystem, sehingga nanti bisa dipindah ke object storage S3-compatible hanya dengan mengganti konfigurasi disk dan menyalin file. Lokasi server di Indonesia opsional. MySQL tidak punya row-level security, jadi isolasi workspace (Bagian 10.1) harus ditegakkan di lapisan aplikasi: setiap query wajib difilter `workspace_id`, plus uji otomatis akses lintas workspace.
 
 **Penyimpanan file.** Object storage (S3-compatible) dengan URL bertanda tangan berumur pendek; thumbnail dibuat di server untuk galeri agar cepat di HP.
 
@@ -584,8 +587,7 @@ Gunakan satu repo Git privat (monorepo) dengan trunk-based development: `main` s
 | --- | --- | --- |
 | `docs` | SRS dan catatan requirement; tetap diperbarui | Fase 0 |
 | `poc/camera` | Halaman uji PoC kamera, dibekukan setelah G0 | Fase 0 |
-| `apps/web` | PWA (UI, capture, galeri, report) | Fase 1 |
-| `apps/api` | Backend: auth, data, storage, integrasi Sheets | Fase 1 |
+| `apps/web` | Aplikasi Laravel: model, controller, view Blade, capture, galeri, report, PWA | Fase 1 |
 | `packages/slots` | Definisi slot dan overlay sebagai data JSON berversi | Fase 0 (dari PoC) |
 | `packages/report` | Template PDF case report dan report progres | Fase 3 |
 | `apps/ios` | Shell hybrid (mis. Capacitor), hanya bila G0 memilih opsi C. **Tidak dibuat**: G0 memilih opsi A | — |
