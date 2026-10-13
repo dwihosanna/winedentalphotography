@@ -95,7 +95,7 @@ Ada 34 kebutuhan fungsional di 8 modul; 28 di antaranya MVP (diperbarui setelah 
 | FR-04 | Kasus | Buat kasus ortodonti per pasien: tipe behel, tanggal pemasangan, dokter PJ, status (aktif/selesai) | Satu pasien bisa > 1 kasus (mis. retreatment) | MVP |
 | FR-05 | Kasus | Buat sesi per kunjungan dengan tahap: Awal, Insersi, Kontrol ke-n, Lepas, Retensi | Nomor kontrol otomatis; tanggal sesi default hari ini, bisa diubah | MVP |
 | FR-06 | Capture | Capture langsung dengan kamera + overlay guide per kategori | Lihat Bagian 6 | MVP |
-| FR-07 | Capture | Upload foto dari galeri/DSLR (multi-file) lalu tetapkan kategori | Upload 8 foto sekaligus; kategori bisa diatur via drag ke slot | MVP |
+| FR-07 | Capture | Upload foto dari galeri/DSLR (multi-file) lalu tetapkan kategori | Upload hingga 11 foto sekaligus (8 wajib + 3 tambahan); kategori bisa diatur via drag ke slot | MVP |
 | FR-08 | Capture | Upload rontgen (panoramik, sefalometri) | Hanya upload; format JPG/PNG/PDF; tanpa mode kamera | MVP |
 | FR-09 | Capture | Checklist sesi menampilkan slot terisi/kosong sesuai template tahap | Sesi bisa disimpan draft; status "lengkap" hanya bila slot wajib terisi | MVP |
 | FR-10 | Capture | Retake dan ganti foto pada slot | Foto lama tidak hilang, ditandai "diganti" (audit) | MVP |
@@ -235,7 +235,7 @@ Kolom Wajib/Opsional adalah usulan default dan harus dikonfirmasi dokter; templa
 3. **Ghost overlay** foto kategori sama dari sesi sebelumnya (FR-11).
 4. **Deteksi wajah on-device untuk ekstraoral** (v1.1): landmark wajah di browser (mis. MediaPipe Face Landmarker) untuk memeriksa roll/yaw kepala dan garis interpupil, lalu memberi status "posisi OK". Untuk intraoral, deteksi otomatis tidak dimasukkan v1 karena butuh model khusus dan dataset gigi. \[low confidence soal akurasi di HP kelas menengah; perlu proof-of-concept\]
 5. **Mode "Kamera bawaan (resolusi penuh)"** sebagai alternatif: membuka kamera native lewat `<input type="file" capture>`. Hasil lebih tajam, tetapi **tanpa overlay**. Tradeoff ini harus ditampilkan ke pengguna, bukan disembunyikan.
-6. **Grid sesi**: setelah tiap capture, layar menampilkan 8 slot seperti halaman template sehingga pengguna langsung melihat slot yang masih kosong.
+6. **Grid sesi**: setelah tiap capture, layar menampilkan 11 slot (8 wajib + 3 tambahan, sesuai `slots.v2.json`) sehingga pengguna langsung melihat slot yang masih kosong.
 
 ### 6.4 Alur capture (wizard)
 
@@ -278,9 +278,11 @@ Setiap foto terikat ke rantai Pasien → Kasus → Sesi → Slot, sehingga tag p
 | report | id, case\_id, template, before\_session\_id, after\_session\_id, foto\_terpilih (JSON), pdf\_url, dibuat\_oleh, dibuat\_at | PDF disimpan sebagai snapshot |
 | audit\_log | id, user\_id, aksi, entitas, entitas\_id, waktu, ip/perangkat | Append-only |
 
-**Kategori foto (enum tetap):** wajah\_depan\_rest, wajah\_depan\_senyum, wajah\_profil\_kanan, io\_kiri, io\_depan, io\_kanan, io\_oklusal\_atas, io\_oklusal\_bawah, rx\_panoramik, rx\_sefalometri, lainnya.
+**Kategori foto (enum tetap):** wajah\_depan\_rest, wajah\_depan\_senyum, wajah\_profil\_kanan, io\_kiri, io\_depan, io\_kanan, io\_oklusal\_atas, io\_oklusal\_bawah, io\_anterior\_atas, io\_anterior\_bawah, rx\_panoramik, rx\_sefalometri, lainnya.
 
 **Metadata EXIF.** Sistem membaca EXIF dari file upload (tanggal ambil, perangkat) untuk peringatan bila tanggal foto jauh dari tanggal sesi, tetapi **menghapus EXIF lokasi GPS** sebelum menyimpan. Foto hasil capture browser biasanya tidak membawa EXIF kamera yang lengkap, sehingga parameter perangkat dicatat oleh aplikasi. \[medium confidence\]
+
+**Basis data dan penyimpanan (rencana 13 Okt 2026, belum final).** Basis data MySQL di Hostinger; file foto di cloud hosting, bukan di server database. MySQL tidak punya row-level security, jadi isolasi workspace (Bagian 10.1) harus ditegakkan di lapisan aplikasi: setiap query wajib difilter `workspace_id`, plus uji otomatis akses lintas workspace.
 
 **Penyimpanan file.** Object storage (S3-compatible) dengan URL bertanda tangan berumur pendek; thumbnail dibuat di server untuk galeri agar cepat di HP.
 
@@ -339,7 +341,7 @@ Sumber: [status implementasi W3C Image Capture](https://github.com/w3c/mediacapt
 | NFR-06 | Ketersediaan | 99,5% per bulan pada jam praktik |
 | NFR-07 | Backup | Backup harian, retensi sesuai kebijakan rekam medis (lihat Bagian 9) |
 | NFR-08 | Report | PDF A4, gambar ≥ 150 dpi saat cetak; generate < 15 detik |
-| NFR-09 | Usability | Satu sesi lengkap 8 foto bisa diselesaikan asisten terlatih dalam ≤ 5 menit (di luar waktu persiapan pasien) |
+| NFR-09 | Usability | Satu sesi lengkap 8 foto wajib (3 slot tambahan opsional) bisa diselesaikan asisten terlatih dalam ≤ 5 menit (di luar waktu persiapan pasien) |
 
 **Risiko PWA di iOS yang perlu dicatat.** Penyimpanan lokal PWA di iOS bisa dibersihkan sistem bila app jarang dipakai, sehingga antrian offline (FR-12) berisiko kehilangan foto yang belum terunggah. \[medium confidence — perilaku ini berubah antar versi iOS; perlu verifikasi live\] Mitigasi: indikator unggah yang mencolok dan larangan menutup sesi sebelum semua foto terunggah.
 
@@ -388,7 +390,7 @@ Risiko terbesar bukan di pengembangan software, melainkan di dua hal: kualitas k
 | Akun Free palsu (bukan dokter gigi) menyimpan foto wajah/rontgen pasien | Tinggi: hukum dan reputasi | Sedang (pendaftaran terbuka tanpa verifikasi) | Batas 50 pasien; email terverifikasi; pernyataan dokter berizin + syarat layanan tercatat; admin bisa menangguhkan; audit log. Opsi lebih ketat: akun Free hanya pasien demo sampai diverifikasi |
 | Layanan gratis (Free dan Premium) selama masa uji 1–2 tahun tetapi retensi foto 25 tahun | Sedang–tinggi: biaya penyimpanan ditanggung platform tanpa pemasukan | Tinggi bila banyak dokter luar bergabung | Batas 50 pasien dan 5 GB untuk Free; aturan akhir masa uji tertulis di syarat layanan; ukur biaya per pasien per tahun di MVP; kompresi turunan + cold storage; putuskan harga Premium sebelum banyak dokter luar |
 | Akun Free ditinggalkan dengan data pasien | Sedang: data tetap wajib disimpan, tanpa pemilik aktif | Sedang | Kebijakan akun tidak aktif di syarat layanan; ekspor data untuk dokter; kontak admin |
-| Kebocoran data antar workspace | Sangat tinggi | Rendah–sedang | Isolasi per workspace di level database (row-level security), uji otomatis akses lintas workspace |
+| Kebocoran data antar workspace | Sangat tinggi | Rendah–sedang | Isolasi per workspace: filter `workspace_id` wajib di lapisan aplikasi (MySQL tidak punya row-level security), uji otomatis akses lintas workspace |
 | Pasien duplikat (input manual tanpa No. RM) | Sedang: foto terpecah di dua pasien | Sedang | Peringatan nama + tanggal lahir sama; fitur gabung pasien (v1.1) |
 | Biaya penyimpanan membengkak (retensi 25 tahun) | Sedang | Tinggi dalam jangka panjang | Kompresi turunan, cold storage untuk kasus selesai |
 | RME berbasis GAS + Google Sheets: pengguna dengan akses Editor bisa mengubah/menghapus baris langsung di sheet tanpa lewat ERP; tidak ada constraint unik No. RM; kepatuhan audit/keutuhan Permenkes 24/2022 bergantung pada edisi Google Workspace dan pengaturan akses | Tinggi: risiko kepatuhan dan foto tertaut ke pasien yang salah | Sedang–tinggi | Integrasi opsi B di 5.1 (read-only); konfirmasi identitas sebelum sesi; batasi akses Editor sheet hanya ke admin; cek apakah klinik memakai Google Workspace berbayar (log audit Drive, kebijakan berbagi) dan lokasi data \[this needs verification\]; evaluasi migrasi RME ke database sebagai proyek terpisah |
@@ -445,7 +447,7 @@ Setiap fase hanya dimulai setelah gate sebelumnya lolos. Durasi hanya dicantumka
 
 | Gate | Kriteria lolos | Bila gagal |
 | --- | --- | --- |
-| G0 | Matriks slot × opsi disetujui 2 dokter; spike Sheets API berhasil membaca 1 pasien | Ulang uji dengan lensa/jarak berbeda, atau langsung putuskan opsi C |
+| G0 | Matriks slot × opsi disetujui 2 dokter. Spike Sheets API dikeluarkan dari G0 (rencana basis data MySQL, Bagian 7) | Ulang uji dengan lensa/jarak berbeda, atau langsung putuskan opsi C |
 | G1 | Login + peran, audit log, enkripsi, URL bertanda tangan berfungsi di staging | Perbaiki sebelum data pasien nyata masuk |
 | G2 | Foto alpha dari pasien nyata dinilai layak oleh kedua dokter; tidak ada foto hilang | Kembali ke opsi capture lain untuk slot yang gagal |
 | G3 | Checklist go-live: consent, restore backup teruji, checklist uji manual iPhone lolos | Tunda v1.0; tetap jalan paralel dengan proses lama |
@@ -509,7 +511,7 @@ Kriteria ditetapkan sebelum melihat hasil agar keputusan tidak dibentuk oleh pre
 | IO-07 | Anterior bawah | Tidak | A |
 | FREE | Bebas | Tidak | A |
 
-Daftar slot dan garis bantu mengikuti PoC final (`poc/camera/slots.v2.json`, 11 slot: 8 wajib + 3 tambahan), bukan 8 slot rencana awal. Perilaku kamera PoC v2.5 menjadi acuan produk: default lensa utama (zoom 1×–5× = crop lensa yang sama sehingga fokus stabil), multi-lensa iOS dan lensa manual tetap bisa dipilih di Pengaturan, zoom diingat per slot, dan Kunci fokus bila browser mendukung. Folder `poc/` dibekukan dengan tag `poc-v0`.
+Daftar slot dan garis bantu mengikuti PoC final (`poc/camera/slots.v2.json`, 11 slot: 8 wajib + 3 tambahan), bukan 8 slot rencana awal. Perilaku kamera PoC v2.5 menjadi acuan produk: default lensa utama (zoom 1×–5× = crop lensa yang sama sehingga fokus stabil), multi-lensa iOS dan lensa manual tetap bisa dipilih di Pengaturan, zoom diingat per slot, dan Kunci fokus bila browser mendukung. Folder `poc/` dibekukan dengan tag `poc-v0`. Foto relawan sudah dihapus dari HP dan hosting. Spike Sheets API tidak dijalankan dan dikeluarkan dari G0 karena rencana basis data beralih ke MySQL di Hostinger; sinkron RME (FR-03) tetap opsional dan diuji saat fitur itu dibangun.
 
 ### 11.2.1 Langkah teknis Fase 0
 
@@ -624,7 +626,7 @@ CI/CD dibangun bertahap. Di Fase 0 cukup satu hal: **preview deploy HTTPS otomat
 | Staging | Data sintetis + foto relawan dengan consent; **tidak boleh** foto pasien | Developer, 2 dokter untuk UAT |
 | Produksi | Data pasien nyata, region cloud Jakarta (Bagian 9) | Dokter, asisten, admin |
 
-**Batasan pengujian otomatis yang harus diterima.** Test E2E otomatis (mis. Playwright dengan engine WebKit) tidak sama dengan Safari di iPhone asli, dan kamera nyata tidak bisa diotomatisasi dengan andal. \[medium confidence\] Karena itu setiap rilis yang menyentuh capture wajib lolos **checklist uji manual** di kedua iPhone: izin kamera, 8 slot, upload, rotasi/flip, offline lalu online.
+**Batasan pengujian otomatis yang harus diterima.** Test E2E otomatis (mis. Playwright dengan engine WebKit) tidak sama dengan Safari di iPhone asli, dan kamera nyata tidak bisa diotomatisasi dengan andal. \[medium confidence\] Karena itu setiap rilis yang menyentuh capture wajib lolos **checklist uji manual** di kedua iPhone: izin kamera, 11 slot, upload, rotasi/flip, offline lalu online.
 
 **Strategi update PWA.** Service worker baru tidak boleh memaksa reload saat asisten sedang di tengah sesi capture. Versi baru diunduh di latar belakang, lalu pengguna diberi banner "Versi baru tersedia" yang hanya aktif di luar layar capture. Versi aplikasi dan `overlay_version` ditampilkan di menu Tentang untuk memudahkan pelacakan masalah.
 
