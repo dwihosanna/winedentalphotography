@@ -582,6 +582,7 @@ Gunakan satu repo Git privat (monorepo) dengan trunk-based development: `main` s
 
 | Folder | Isi | Dibuat di fase |
 | --- | --- | --- |
+| `docs` | SRS dan catatan requirement; tetap diperbarui | Fase 0 |
 | `poc/camera` | Halaman uji PoC kamera, dibekukan setelah G0 | Fase 0 |
 | `apps/web` | PWA (UI, capture, galeri, report) | Fase 1 |
 | `apps/api` | Backend: auth, data, storage, integrasi Sheets | Fase 1 |

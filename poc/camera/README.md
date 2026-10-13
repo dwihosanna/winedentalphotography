@@ -1,6 +1,6 @@
 # PoC kamera – Mode A
 
-> **Dibekukan (tag `poc-v0`, 13 Okt 2026).** G0: Mode A dipilih untuk semua 11 slot (SRS Bagian 11.2).
+> **Dibekukan (tag `poc-v0`, 13 Okt 2026).** G0: Mode A dipilih untuk semua 11 slot (SRS Bagian 11.2, `docs/Srs.md`).
 > Folder ini hanya referensi; jangan diubah. Pengembangan produk dilanjutkan di `apps/web` dan `packages/slots`.
 
 Halaman statis untuk Fase 0 (SRS Bagian 11.2): kamera browser (`getUserMedia`) dengan garis bantu per slot,
