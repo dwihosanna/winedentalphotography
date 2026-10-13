@@ -15,9 +15,9 @@ waterpass, panel diagnostik, dan ekspor ZIP. Tidak ada server dan database; foto
 
 ## Perubahan v2.5 (masukan dokter: default lensa utama)
 
-- Kamera default kini **Otomatis: lensa utama saja**, juga di HP yang sebelumnya sudah dipakai (pilihan lama
+- Kamera default kini **Default: lensa utama**, juga di HP yang sebelumnya sudah dipakai (pilihan lama
   tidak terbawa karena multi-lensa dulu tersimpan otomatis sebagai default).
-- Dokter tetap bisa mengganti ke *Otomatis: multi-lensa* atau lensa manual di **Pengaturan > Lensa / kamera**;
+- Dokter tetap bisa mengganti ke *Otomatis: multi-lensa by iOS* atau lensa manual di **Pengaturan > Lensa / kamera** (urutan daftar: lensa utama, multi-lensa, lalu kamera lain seperti biasa);
   pilihan itu diingat di HP ini.
 
 ## Perubahan v2.4 (masukan dokter: fokus berubah saat zoom)

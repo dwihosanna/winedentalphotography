@@ -37,7 +37,7 @@ const ZOOM_STEPS = [1, 2, 3, 4, 5]; // kelipatan terhadap lensa utama (1×), sep
 const MULTI_CAM = [/triple|tiga/i, /dual wide|lebar ganda|ganda lebar/i, /dual|ganda/i];
 // Pilihan otomatis di daftar kamera. 'main' = hanya lensa utama: zoom = crop digital lensa yang sama,
 // jadi zoom tidak memicu pindah lensa dan fokus ulang.
-const LENS_AUTO = { main: 'Otomatis: lensa utama saja (fokus stabil saat zoom)', multi: 'Otomatis: multi-lensa (iOS pilih lensa)' };
+const LENS_AUTO = { main: 'Default: lensa utama', multi: 'Otomatis: multi-lensa by iOS' };
 const LENS_DEFAULT = 'main';
 const NOT_MAIN = /front|depan|tele|ultra|wide|lebar|dual|ganda|triple|tiga/i;
 const HAS_ULTRA_WIDE = /triple|tiga|dual wide|lebar ganda|ganda lebar/i; // zoom 1 = ultra wide (0,5×)
