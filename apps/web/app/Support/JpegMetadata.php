@@ -23,6 +23,20 @@ final class JpegMetadata
         ];
     }
 
+    /** Orientasi EXIF dari byte JPEG yang sudah disimpan (APP1 minimal hasil strip). */
+    public static function orientationOf(string $bytes): int
+    {
+        $stream = fopen('php://memory', 'r+b');
+        fwrite($stream, $bytes);
+        rewind($stream);
+
+        try {
+            return (int) ((@exif_read_data($stream) ?: [])['Orientation'] ?? 1);
+        } finally {
+            fclose($stream);
+        }
+    }
+
     /** Kembalikan byte JPEG tanpa APP1/APP13; null bila bukan JPEG yang bisa diurai. */
     public static function strip(string $bytes, int $orientation = 1): ?string
     {

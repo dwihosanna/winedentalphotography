@@ -7,7 +7,7 @@ use GdImage;
 /** Thumbnail JPEG untuk galeri (NFR-02). Orientasi EXIF diterapkan karena thumbnail tidak membawa EXIF. */
 final class Thumbnail
 {
-    public static function make(string $bytes, int $orientation, int $size): ?string
+    public static function make(string $bytes, int $orientation, int $size, int $quality = 80): ?string
     {
         $previous = ini_get('memory_limit');
         ini_set('memory_limit', '1024M'); // foto 12 MP butuh ±50 MB di GD; 48 MP ±200 MB
@@ -29,7 +29,7 @@ final class Thumbnail
             imagecopyresampled($thumb, $image, 0, 0, 0, 0, $tw, $th, $w, $h);
 
             ob_start();
-            imagejpeg($thumb, null, 80);
+            imagejpeg($thumb, null, $quality);
 
             return ob_get_clean();
         } finally {
@@ -37,7 +37,8 @@ final class Thumbnail
         }
     }
 
-    private static function orient(GdImage $image, int $orientation): GdImage
+    /** Terapkan orientasi EXIF ke piksel (GD tidak membacanya sendiri). */
+    public static function orient(GdImage $image, int $orientation): GdImage
     {
         if (in_array($orientation, [2, 4, 5, 7], true)) {
             imageflip($image, $orientation === 4 ? IMG_FLIP_VERTICAL : IMG_FLIP_HORIZONTAL);

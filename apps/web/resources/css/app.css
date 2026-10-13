@@ -80,3 +80,34 @@ details.card[open] > summary { margin-bottom: var(--space-3); }
 .upload-item.done { border-color: var(--success); }
 .upload-item.error { border-color: var(--danger); }
 .upload-item.error .state { color: var(--danger); }
+
+/* Galeri per kategori (FR-15), perbandingan (FR-17), detail foto (FR-18). */
+.filter-dates { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.gallery-group { margin-bottom: var(--space-4); }
+.gallery-head { position: static; margin: 0; display: flex; justify-content: space-between; gap: var(--space-3); }
+.gallery-head a { color: var(--primary); font-weight: 500; }
+.gallery-grid { list-style: none; margin: 0; padding: 3px; display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 3px; }
+.gallery-grid a { position: relative; display: block; color: inherit; text-decoration: none; }
+.gallery-grid img, .gallery-grid .ph { width: 100%; aspect-ratio: 1; object-fit: cover; display: grid; place-items: center; background: var(--surface-2); color: var(--muted); }
+.gallery-grid .cap { position: absolute; inset: auto 0 0 0; padding: 2px var(--space-2); font-size: var(--fs-xs); color: #fff; background: linear-gradient(transparent, rgb(0 0 0 / .6)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.page-wide { max-width: 1100px; }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.compare figure { margin: 0; display: grid; gap: var(--space-1); align-content: start; }
+.compare img { width: 100%; height: auto; display: block; border-radius: var(--radius-sm); background: var(--surface-2); }
+.compare .ph { display: grid; place-items: center; aspect-ratio: 4 / 3; background: var(--surface-2); border-radius: var(--radius-sm); }
+.compare figcaption { font-size: var(--fs-xs); color: var(--muted); }
+.photo-full { width: 100%; height: auto; display: block; border-radius: var(--radius); background: var(--surface-2); }
+
+/* Editor foto (FR-13). */
+.editor-stage { display: grid; place-items: center; min-height: 240px; background: var(--surface-2); border-radius: var(--radius); overflow: hidden; }
+.editor-stage canvas { touch-action: none; display: block; }
+.editor-tools { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+.editor-tools [aria-pressed="true"] { border-color: var(--primary); color: var(--primary); }
+.editor input[type=range] { width: 100%; accent-color: var(--primary); }
+
+/* Pilih foto report (FR-21). */
+.report-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.report-row { display: grid; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.report-pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.report-pick { display: grid; gap: var(--space-1); align-content: start; }
+.report-pick img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface-2); }

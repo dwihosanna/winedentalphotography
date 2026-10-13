@@ -33,4 +33,10 @@ class PatientPolicy
     {
         return $this->view($user, $patient) && $this->current->isDentist();
     }
+
+    /** Hanya dokter yang membuat dan mengekspor report (FR-23). */
+    public function report(User $user, Patient $patient): bool
+    {
+        return $this->view($user, $patient) && $this->current->isDentist();
+    }
 }

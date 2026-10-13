@@ -7,10 +7,15 @@ use Illuminate\Http\UploadedFile;
 /** JPEG uji dengan EXIF buatan (orientasi, tanggal, GPS) untuk menguji pembersihan metadata. */
 final class TestImages
 {
-    public static function jpeg(int $w = 64, int $h = 48, int $orientation = 1, ?string $date = null, bool $gps = false): string
+    /** $split: setengah atas merah, bawah biru, untuk menguji arah putar/balik lewat warna piksel. */
+    public static function jpeg(int $w = 64, int $h = 48, int $orientation = 1, ?string $date = null, bool $gps = false, bool $split = false): string
     {
         $img = imagecreatetruecolor($w, $h);
         imagefilledrectangle($img, 0, 0, $w, $h, imagecolorallocate($img, 200, 120, 120));
+        if ($split) {
+            imagefilledrectangle($img, 0, 0, $w, intdiv($h, 2) - 1, imagecolorallocate($img, 230, 20, 20));
+            imagefilledrectangle($img, 0, intdiv($h, 2), $w, $h, imagecolorallocate($img, 20, 20, 230));
+        }
         ob_start();
         imagejpeg($img, null, 90);
         $jpeg = ob_get_clean();
@@ -25,6 +30,15 @@ final class TestImages
         file_put_contents($path, $bytes);
 
         return new UploadedFile($path, $name, null, null, true);
+    }
+
+    /** 'red' atau 'blue' menurut kanal dominan piksel (x, y) dari byte JPEG. */
+    public static function colorAt(string $bytes, int $x, int $y): string
+    {
+        $img = imagecreatefromstring($bytes);
+        $rgb = imagecolorat($img, $x, $y);
+
+        return (($rgb >> 16) & 0xFF) > ($rgb & 0xFF) ? 'red' : 'blue';
     }
 
     /** TIFF big-endian: IFD0 (Orientation, DateTime, GPS pointer) + GPS IFD (GPSLatitudeRef). */

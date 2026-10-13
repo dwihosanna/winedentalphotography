@@ -32,6 +32,10 @@
         <div><dt>Jenis kelamin</dt><dd>{{ ['L' => 'Laki-laki', 'P' => 'Perempuan'][$patient->sex] ?? '—' }}</dd></div>
     </dl>
 
+    @can('report', $patient)
+        <div class="page"><a class="btn btn-secondary btn-block" href="{{ route('reports.create', $patient) }}">Buat report before/after</a></div>
+    @endcan
+
     @include('partials.patient-tabs')
 @endsection
 

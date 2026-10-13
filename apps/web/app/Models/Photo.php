@@ -57,12 +57,29 @@ class Photo extends Model
         return $this->belongsTo(Photo::class, 'replaced_by_photo_id');
     }
 
+    public function takenBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'taken_by');
+    }
+
     /** URL bertanda tangan berumur pendek; tidak ada URL publik permanen (SRS Bagian 9). */
     public function url(string $variant = 'thumb'): string
     {
         return URL::temporarySignedRoute('photos.file', now()->addMinutes(config('dental.signed_url_minutes')), [
             'photo' => $this->id, 'variant' => $variant,
         ]);
+    }
+
+    /** Versi yang ditampilkan di galeri, perbandingan, dan report: hasil edit bila ada (FR-13). */
+    public function displayVariant(): string
+    {
+        return $this->edited_path ? 'edited' : 'original';
+    }
+
+    /** Dibalik otomatis karena slot cermin dan belum diubah pengguna (FR-14). */
+    public function isAutoFlipped(): bool
+    {
+        return (bool) ($this->edit_params['auto_flip'] ?? false);
     }
 
     public function isImage(): bool

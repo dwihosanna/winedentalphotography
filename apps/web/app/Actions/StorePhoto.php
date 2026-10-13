@@ -8,6 +8,7 @@ use App\Models\PhotoSession;
 use App\Models\SlotTemplate;
 use App\Models\Workspace;
 use App\Support\JpegMetadata;
+use App\Support\SlotGuides;
 use App\Support\Thumbnail;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,8 @@ use Throwable;
  */
 class StorePhoto
 {
+    public function __construct(private EditPhoto $editPhoto) {}
+
     /**
      * @param  array{source: string, device?: ?string, lens_mode?: ?string, zoom?: ?float, overlay_version?: ?string}  $meta
      */
@@ -55,7 +58,7 @@ class StorePhoto
         }
 
         try {
-            return DB::transaction(function () use ($session, $slot, $file, $meta, $userId, $bytes, $info, $mime, $disk, $id, $originalPath, $thumbPath) {
+            $photo = DB::transaction(function () use ($session, $slot, $file, $meta, $userId, $bytes, $info, $mime, $disk, $id, $originalPath, $thumbPath) {
                 // Kunci baris workspace agar unggahan bersamaan tidak melewati batas penyimpanan (FR-34).
                 $workspace = Workspace::whereKey($session->workspace_id)->lockForUpdate()->first();
                 if (! $workspace->hasStorageFor(strlen($bytes))) {
@@ -106,6 +109,28 @@ class StorePhoto
         } catch (Throwable $e) {
             Storage::disk($disk)->delete(array_filter([$originalPath, $thumbPath]));
             throw $e;
+        }
+
+        $this->autoFlip($photo, $meta['source']);
+
+        return $photo;
+    }
+
+    /**
+     * Foto unggahan di slot cermin (oklusal) dibalik otomatis lewat edit non-destruktif (FR-14).
+     * Foto kamera tidak: tombol Cermin di kamera sudah membalik hasil saat dipotret.
+     */
+    private function autoFlip(Photo $photo, string $source): void
+    {
+        $mirror = SlotGuides::mirror($photo->slot_code);
+        if ($source !== 'upload' || ! $photo->isImage() || ! ($mirror['default'] ?? false)) {
+            return;
+        }
+
+        try {
+            ($this->editPhoto)($photo, [$mirror['axis'] === 'vertical' ? 'flip_v' : 'flip_h' => true, 'auto_flip' => true]);
+        } catch (ValidationException) {
+            // Kuota tidak cukup untuk file edit: foto asli tetap tersimpan tanpa dibalik, bisa diedit nanti.
         }
     }
 

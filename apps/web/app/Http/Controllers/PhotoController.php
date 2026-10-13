@@ -6,6 +6,7 @@ use App\Actions\StorePhoto;
 use App\Models\AuditLog;
 use App\Models\Photo;
 use App\Models\PhotoSession;
+use App\Support\SlotGuides;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,8 +21,7 @@ class PhotoController extends Controller
     {
         $this->authorize('view', $session->orthoCase->patient);
 
-        $overlay = json_decode(file_get_contents(resource_path('slots/slots.v2.json')), true);
-        $guides = collect($overlay['slots'])->keyBy('code');
+        $guides = collect(SlotGuides::all()['slots'])->keyBy('code');
         $filled = $session->currentPhotos()->pluck('slot_code')->all();
 
         // Kamera hanya untuk slot foto; rontgen hanya diunggah (FR-08).
@@ -43,7 +43,7 @@ class PhotoController extends Controller
             'config' => [
                 'slots' => $slots,
                 'start' => $start,
-                'overlayVersion' => $overlay['version'],
+                'overlayVersion' => SlotGuides::version(),
                 'uploadUrl' => route('photos.store', $session),
                 'doneUrl' => route('sessions.show', $session),
             ],
@@ -79,8 +79,7 @@ class PhotoController extends Controller
             'device' => ['nullable', 'string', 'max:255'],
         ], ['file.max' => 'File terlalu besar (maks. '.(config('dental.max_upload_kb') / 1024).' MB).']);
 
-        $overlay = $data['source'] === 'camera'
-            ? json_decode(file_get_contents(resource_path('slots/slots.v2.json')), true)['version'] : null;
+        $overlay = $data['source'] === 'camera' ? SlotGuides::version() : null;
 
         $photo = $storePhoto($session, $data['slot_code'], $request->file('file'), [
             'source' => $data['source'],
@@ -115,14 +114,15 @@ class PhotoController extends Controller
         $path = match ($variant) {
             'thumb' => $photo->thumb_path ?? abort(404),
             'original' => $photo->original_path,
+            'edited' => $photo->edited_path ?? abort(404),
             default => abort(404),
         };
-        if ($variant === 'original') {
-            AuditLog::record('view', $photo); // thumbnail galeri tidak dicatat agar log tidak membanjir
+        if ($variant !== 'thumb') {
+            AuditLog::record('view', $photo, ['variant' => $variant]); // thumbnail galeri tidak dicatat agar log tidak membanjir
         }
 
         return Storage::disk($photo->disk)->response($path, null, [
-            'Content-Type' => $variant === 'thumb' ? 'image/jpeg' : $photo->mime,
+            'Content-Type' => $variant === 'original' ? $photo->mime : 'image/jpeg',
             'Cache-Control' => 'private, max-age='.(config('dental.signed_url_minutes') * 60),
             'X-Content-Type-Options' => 'nosniff',
         ]);

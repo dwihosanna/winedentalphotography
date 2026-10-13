@@ -37,7 +37,7 @@
                 @php($photo = $photos->get($slot->slot_code))
                 <li class="slot {{ $photo ? 'filled' : '' }} {{ $slot->required ? 'required' : '' }}">
                     @if ($photo && $photo->thumb_path)
-                        <a href="{{ $photo->url('original') }}" target="_blank" rel="noopener"><img src="{{ $photo->url('thumb') }}" alt="{{ $slot->label }}" loading="lazy"></a>
+                        <a href="{{ route('photos.show', $photo) }}"><img src="{{ $photo->url('thumb') }}" alt="{{ $slot->label }}" loading="lazy"></a>
                     @elseif ($photo)
                         <a class="ph" href="{{ $photo->url('original') }}" target="_blank" rel="noopener">PDF</a>
                     @else

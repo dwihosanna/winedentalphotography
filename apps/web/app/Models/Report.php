@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Stage;
 use App\Models\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -22,5 +23,26 @@ class Report extends Model
     public function orthoCase(): BelongsTo
     {
         return $this->belongsTo(OrthoCase::class);
+    }
+
+    public function beforeSession(): BelongsTo
+    {
+        return $this->belongsTo(PhotoSession::class, 'before_session_id');
+    }
+
+    public function afterSession(): BelongsTo
+    {
+        return $this->belongsTo(PhotoSession::class, 'after_session_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** "Before / After" bila sesi sesudah = Lepas/Retensi; selain itu report progres (FR-26). */
+    public function title(): string
+    {
+        return in_array($this->afterSession?->stage, [Stage::Debond, Stage::Retention], true) ? 'Before / After' : 'Report Progres';
     }
 }
