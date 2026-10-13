@@ -3,6 +3,7 @@
 // v2.1: garis bantu mengikuti rotasi HP (portrait/landscape), juga saat kunci rotasi iOS aktif.
 // v2.3: kamera multi-lensa otomatis + tombol zoom di layar (diingat per slot).
 // v2.4: mode 'lensa utama saja' (fokus tidak berubah saat zoom) + tombol Kunci fokus bila browser mendukung.
+// v2.5: default kamera = lensa utama saja (masukan dokter); multi-lensa tetap bisa dipilih di Pengaturan.
 // Tanpa server dan tanpa database: foto + log disimpan di IndexedDB HP ini,
 // lalu diekspor sebagai ZIP (photos/*.jpg, log.csv, log.json).
 
@@ -36,7 +37,8 @@ const ZOOM_STEPS = [1, 2, 3, 4, 5]; // kelipatan terhadap lensa utama (1×), sep
 const MULTI_CAM = [/triple|tiga/i, /dual wide|lebar ganda|ganda lebar/i, /dual|ganda/i];
 // Pilihan otomatis di daftar kamera. 'main' = hanya lensa utama: zoom = crop digital lensa yang sama,
 // jadi zoom tidak memicu pindah lensa dan fokus ulang.
-const LENS_AUTO = { multi: 'Otomatis: multi-lensa (iOS pilih lensa)', main: 'Otomatis: lensa utama saja (fokus stabil saat zoom)' };
+const LENS_AUTO = { main: 'Otomatis: lensa utama saja (fokus stabil saat zoom)', multi: 'Otomatis: multi-lensa (iOS pilih lensa)' };
+const LENS_DEFAULT = 'main';
 const NOT_MAIN = /front|depan|tele|ultra|wide|lebar|dual|ganda|triple|tiga/i;
 const HAS_ULTRA_WIDE = /triple|tiga|dual wide|lebar ganda|ganda lebar/i; // zoom 1 = ultra wide (0,5×)
 
@@ -136,7 +138,8 @@ async function init() {
   el.opacity.value = prefs.opacity || '0.9';
   state.zoomBySlot = prefs.zoomBySlot || {};
   el.cameraSelect.replaceChildren(...Object.entries(LENS_AUTO).map(([v, t]) => new Option(t, v)));
-  el.cameraSelect.value = LENS_AUTO[prefs.lensMode] ? prefs.lensMode : 'multi';
+  // Kunci 'lens' (bukan 'lensMode' v2.4) supaya 'multi' yang tersimpan otomatis dari default lama tidak terbawa.
+  el.cameraSelect.value = LENS_AUTO[prefs.lens] ? prefs.lens : LENS_DEFAULT;
   applyOpacity();
 
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
@@ -319,7 +322,7 @@ async function refreshCameras() {
     ...Object.entries(LENS_AUTO).map(([v, t]) => new Option(t, v)),
     ...devices.map((d, i) => new Option(d.label || `Kamera ${i + 1}`, d.deviceId)),
   );
-  el.cameraSelect.value = LENS_AUTO[chosen] || devices.some((d) => d.deviceId === chosen) ? chosen : 'multi';
+  el.cameraSelect.value = LENS_AUTO[chosen] || devices.some((d) => d.deviceId === chosen) ? chosen : LENS_DEFAULT;
 }
 
 /* Lensa utama (wide 1×). iOS: "Back Camera". Android: label sering tidak jelas, jadi pakai kamera belakang bawaan. */
@@ -1166,7 +1169,7 @@ function savePrefs() {
       preset: el.preset.value,
       opacity: el.opacity.value,
       zoomBySlot: state.zoomBySlot,
-      lensMode: LENS_AUTO[el.cameraSelect.value] ? el.cameraSelect.value : undefined,
+      lens: LENS_AUTO[el.cameraSelect.value] ? el.cameraSelect.value : undefined,
     }));
   } catch { /* abaikan */ }
 }
