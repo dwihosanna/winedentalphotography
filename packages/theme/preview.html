@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pratinjau tema – Dental Photo</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    /* Hanya untuk halaman pratinjau: tiga layar HP berdampingan. */
+    body { padding: 24px 16px; background: var(--surface-2); }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+    .phones { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+    .phone {
+      position: relative;
+      transform: translateZ(0); /* elemen fixed menempel ke bingkai HP */
+      width: 390px;
+      max-width: 100%;
+      height: 780px;
+      overflow: auto;
+      border-radius: 32px;
+      background: var(--bg);
+      box-shadow: var(--shadow);
+    }
+    .phone .alpha-index { position: absolute; }
+    .caption { margin: 8px 4px 0; font-size: var(--fs-sm); color: var(--muted); }
+    .section-pad { padding: var(--space-4); display: grid; gap: var(--space-4); }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <h1>Tema Dental Photo</h1>
+    <button class="btn btn-sm" type="button" data-set="light">Terang</button>
+    <button class="btn btn-sm" type="button" data-set="dark">Gelap</button>
+    <button class="btn btn-sm" type="button" data-set="">Ikuti HP</button>
+  </div>
+
+  <div class="phones">
+    <!-- 1. Dashboard dokter -->
+    <figure style="margin:0">
+      <div class="phone">
+        <header class="app-bar">
+          <button class="icon-btn" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+          <p class="title">drg. Contoh Dokter <span class="badge badge-free" style="color:inherit">Free</span></p>
+          <button class="icon-btn" type="button" aria-label="Tambah pasien"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><input placeholder="Cari nama, DPID, No. RM, no. HP"></label>
+        </header>
+        <ul class="list">
+          <li class="list-section">A</li>
+          <li><a class="list-row" href="#"><span class="avatar">AS</span><span class="row-main"><span class="row-title">Ayu <b>Setiawati</b></span><br><span class="row-sub">03-02-1998 · DP-7K3M-QX2R</span></span></a></li>
+          <li><a class="list-row" href="#"><span class="avatar">AR</span><span class="row-main"><span class="row-title">Andi <b>Rahman</b></span><br><span class="row-sub">21-11-2004 · DP-2HVN-8C4T</span></span></a></li>
+          <li class="list-section">B</li>
+          <li><a class="list-row" href="#"><span class="avatar">BP</span><span class="row-main"><span class="row-title">Budi <b>Pratama</b></span><br><span class="row-sub">14-06-1990 · DP-9QWE-5L7A</span></span></a></li>
+          <li class="list-section">D</li>
+          <li><a class="list-row" href="#"><span class="avatar">PD</span><span class="row-main"><span class="row-title">Pasien <b>Demo</b></span><br><span class="row-sub">Contoh, tidak dihitung kuota</span></span></a></li>
+          <li class="list-section">S</li>
+          <li><a class="list-row" href="#"><span class="avatar">SW</span><span class="row-main"><span class="row-title">Sari <b>Wulandari</b></span><br><span class="row-sub">30-09-2010 · DP-4TBY-1M9D</span></span></a></li>
+        </ul>
+        <nav class="alpha-index" aria-label="Indeks huruf"><a href="#">A</a><a href="#">B</a><a href="#">D</a><a href="#">S</a></nav>
+        <div class="section-pad">
+          <div class="meter warn" style="--value:82%"><div class="label"><span>Penyimpanan</span><span>4,1 / 5 GB</span></div><div class="bar"><div class="fill"></div></div></div>
+          <div class="meter" style="--value:10%"><div class="label"><span>Pasien</span><span>5 / 50</span></div><div class="bar"><div class="fill"></div></div></div>
+        </div>
+      </div>
+      <figcaption class="caption">Dashboard dokter (FR-31)</figcaption>
+    </figure>
+
+    <!-- 2. Sheet pasien -->
+    <figure style="margin:0">
+      <div class="phone has-tab-bar">
+        <header class="app-bar">
+          <button class="icon-btn" type="button" aria-label="Kembali"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <p class="title">Sheet pasien</p>
+          <button class="action" type="button">Ubah</button>
+        </header>
+        <section class="profile">
+          <span class="avatar avatar-lg">AS</span>
+          <p class="name">Ayu <b>Setiawati</b></p>
+          <span class="id-tag">DP-7K3M-QX2R</span>
+        </section>
+        <dl class="details">
+          <div><dt>Tanggal lahir</dt><dd>03-02-1998</dd></div>
+          <div><dt>Email</dt><dd>ayu.contoh@example.com</dd></div>
+          <div><dt>No. HP</dt><dd>0812 0000 0000</dd></div>
+          <div><dt>No. RM</dt><dd>RM-00123</dd></div>
+          <div><dt>Jenis kelamin</dt><dd>—</dd></div>
+        </dl>
+        <nav class="tab-bar">
+          <a class="tab" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg>Galeri</a>
+          <button class="fab" type="button" aria-label="Mulai sesi foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <a class="tab" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/></svg>Arsip</a>
+        </nav>
+      </div>
+      <figcaption class="caption">Sheet pasien (FR-32)</figcaption>
+    </figure>
+
+    <!-- 3. Arsip + komponen -->
+    <figure style="margin:0">
+      <div class="phone">
+        <header class="app-bar">
+          <button class="icon-btn" type="button" aria-label="Kembali"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <p class="title">Arsip · Ayu Setiawati</p>
+          <span></span>
+        </header>
+        <a class="archive-row" href="#"><span class="date"><span class="d">08</span><span class="m">Okt 26</span></span><span><span class="badge badge-stage">Kontrol ke-3</span><p class="note">Ganti kawat 0.016 NiTi, elastik kelas II</p></span><span class="count">8 foto</span></a>
+        <a class="archive-row" href="#"><span class="date"><span class="d">10</span><span class="m">Sep 26</span></span><span><span class="badge badge-stage">Kontrol ke-2</span> <span class="badge badge-draft">Draft</span><p class="note">Oklusal bawah belum diambil</p></span><span class="count">6 foto</span></a>
+        <a class="archive-row" href="#"><span class="date"><span class="d">12</span><span class="m">Agu 26</span></span><span><span class="badge badge-stage">Insersi</span><p class="note">Pemasangan bracket MBT 0.022</p></span><span class="count">5 foto</span></a>
+        <a class="archive-row" href="#"><span class="date"><span class="d">29</span><span class="m">Jul 26</span></span><span><span class="badge badge-stage">Awal</span><p class="note">Foto awal + rontgen panoramik</p></span><span class="count">10 foto</span></a>
+        <div class="section-pad">
+          <hr class="divider-gold">
+          <h2>Komponen</h2>
+          <button class="btn btn-primary btn-block" type="button">Simpan pasien</button>
+          <button class="btn btn-secondary btn-block" type="button">Ajukan Premium</button>
+          <div class="field"><label for="n">Nama pasien</label><input id="n" class="input" value="Ayu Setiawati"><span class="hint">Wajib: nama, tanggal lahir, dan satu kontak</span></div>
+          <div class="notice warning">Penyimpanan 82% terpakai. Upgrade ke Premium untuk tanpa batas.</div>
+          <p><span class="badge badge-premium">Premium</span> <span class="badge badge-free">Free</span> <span class="badge badge-success">Lengkap</span> <span class="badge badge-danger">Ditolak</span></p>
+        </div>
+      </div>
+      <figcaption class="caption">Arsip (FR-33) dan komponen dasar</figcaption>
+    </figure>
+  </div>
+
+  <script>
+    for (const b of document.querySelectorAll('[data-set]')) {
+      b.addEventListener('click', () => {
+        if (b.dataset.set) document.documentElement.dataset.theme = b.dataset.set;
+        else delete document.documentElement.dataset.theme;
+      });
+    }
+  </script>
+</body>
+</html>
