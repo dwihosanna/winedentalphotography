@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#6B1E2E">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     {{-- PWA: bisa dipasang di layar utama (NFR-01). iOS memakai apple-touch-icon dan meta di bawah. --}}
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">

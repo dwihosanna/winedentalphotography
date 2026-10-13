@@ -32,12 +32,7 @@
         <div><dt>Jenis kelamin</dt><dd>{{ ['L' => 'Laki-laki', 'P' => 'Perempuan'][$patient->sex] ?? '—' }}</dd></div>
     </dl>
 
-    {{-- Galeri, sesi foto, dan Arsip menyusul di langkah berikutnya. --}}
-    <nav class="tab-bar">
-        <span class="tab" aria-disabled="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg>Galeri</span>
-        <span class="fab" aria-disabled="true" aria-label="Mulai sesi foto" style="opacity:.45"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-        <span class="tab" aria-disabled="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/></svg>Arsip</span>
-    </nav>
+    @include('partials.patient-tabs')
 @endsection
 
 @push('scripts')

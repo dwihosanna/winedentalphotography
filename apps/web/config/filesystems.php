@@ -38,6 +38,16 @@ return [
             'report' => false,
         ],
 
+        // Foto, rontgen, consent, report: privat, hanya lewat URL bertanda tangan (SRS Bagian 9).
+        // Pindah ke object storage: tambah disk s3 lalu set PHOTOS_DISK; baris lama tetap menunjuk disk lamanya.
+        'photos' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/photos'),
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

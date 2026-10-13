@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\URL;
 use LogicException;
 
 /**
@@ -42,6 +43,7 @@ class Photo extends Model
             'edited_bytes' => 'integer',
             'zoom' => 'float',
             'taken_at' => 'datetime',
+            'exif_taken_at' => 'datetime',
         ];
     }
 
@@ -53,6 +55,26 @@ class Photo extends Model
     public function replacedBy(): BelongsTo
     {
         return $this->belongsTo(Photo::class, 'replaced_by_photo_id');
+    }
+
+    /** URL bertanda tangan berumur pendek; tidak ada URL publik permanen (SRS Bagian 9). */
+    public function url(string $variant = 'thumb'): string
+    {
+        return URL::temporarySignedRoute('photos.file', now()->addMinutes(config('dental.signed_url_minutes')), [
+            'photo' => $this->id, 'variant' => $variant,
+        ]);
+    }
+
+    public function isImage(): bool
+    {
+        return str_starts_with($this->mime, 'image/');
+    }
+
+    /** Tanggal EXIF unggahan jauh dari tanggal sesi → mungkin salah sesi (SRS 7). */
+    public function exifDateMismatch(): bool
+    {
+        return $this->exif_taken_at !== null
+            && abs($this->exif_taken_at->startOfDay()->diffInDays($this->session->session_date, false)) > config('dental.exif_date_warning_days');
     }
 
     /** Yang dihitung kuota: file asli + hasil edit (thumbnail tidak) (FR-34). */
