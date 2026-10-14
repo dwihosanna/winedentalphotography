@@ -1,7 +1,9 @@
 // Penampil PDF di dalam aplikasi (report, rontgen PDF). PWA iPhone membuka PDF menutupi aplikasi tanpa tombol
 // kembali, jadi PDF dirender dengan PDF.js di halaman yang punya bar atas + tombol Bagikan.
-import * as pdfjs from 'pdfjs-dist';
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+// Build "legacy": membawa polyfill (core-js) untuk Safari lama. Build standar memakai fitur JS terbaru
+// (mis. Map.getOrInsertComputed, Math.sumPrecise) sehingga gagal dimuat di iPad Safari 18.x.
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.min.mjs';
+import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 

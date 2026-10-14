@@ -2,7 +2,7 @@
 
 return [
     // Versi aplikasi di footer. Naikkan setiap rilis ke produksi (1.01, 1.02, ...).
-    'version' => '1.12',
+    'version' => '1.13',
 
     // Zona waktu tampilan timestamp foto (aplikasi menyimpan waktu dalam UTC).
     'display_timezone' => env('DISPLAY_TIMEZONE', 'Asia/Jakarta'),
