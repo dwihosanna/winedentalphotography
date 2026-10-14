@@ -107,6 +107,29 @@ class PhotoController extends Controller
         ], 201);
     }
 
+    /**
+     * Foto ukuran penuh di dalam aplikasi, dengan tombol kembali dan Bagikan.
+     * PWA iPhone membuka tautan target=_blank menutupi aplikasi tanpa jalan kembali.
+     */
+    public function image(Request $request, Photo $photo): View
+    {
+        $patient = $photo->session->orthoCase->patient;
+        $this->authorize('view', $patient);
+        abort_unless($photo->isImage(), 404);
+
+        $variant = $request->query('versi') === 'asli' || $photo->displayVariant() === 'original' ? 'original' : 'edited';
+
+        return view('photos.viewer', [
+            'photo' => $photo,
+            'patient' => $patient,
+            'slot' => config("slots.slots.{$photo->slot_code}.label", $photo->slot_code),
+            'variant' => $variant,
+            'url' => $photo->url($variant),
+            'fileName' => $photo->shareFileName($patient, $variant),
+            'backUrl' => route('photos.show', $photo),
+        ]);
+    }
+
     /** Rontgen PDF di penampil dalam aplikasi (PWA iPhone tidak bisa membuka PDF di tab baru). */
     public function viewer(Photo $photo): View
     {

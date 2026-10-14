@@ -49,6 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/sesi/{session}/foto', [PhotoController::class, 'store'])->name('photos.store');
         Route::get('/foto/{photo}', [GalleryController::class, 'show'])->name('photos.show');
         Route::get('/foto/{photo}/lihat', [PhotoController::class, 'viewer'])->name('photos.viewer');
+        Route::get('/foto/{photo}/tampil', [PhotoController::class, 'image'])->name('photos.image');
         Route::get('/foto/{photo}/ubah', [PhotoEditController::class, 'edit'])->name('photos.edit');
         Route::put('/foto/{photo}/ubah', [PhotoEditController::class, 'update'])->name('photos.update');
         Route::delete('/foto/{photo}/ubah', [PhotoEditController::class, 'destroy'])->name('photos.reset');

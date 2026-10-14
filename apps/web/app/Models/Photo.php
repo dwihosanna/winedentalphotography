@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToWorkspace;
+use App\Support\SafeFileName;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -83,6 +84,14 @@ class Photo extends Model
     public function timestampText(): string
     {
         return $this->capturedAt()->format('d-m-Y H:i');
+    }
+
+    /** Nama file saat dibagikan/diunduh: Nama Pasien-SLOT-dd-mm-yyyy.jpg (tanggal sesi). */
+    public function shareFileName(Patient $patient, string $variant): string
+    {
+        $ext = $variant === 'original' ? (['image/png' => 'png', 'application/pdf' => 'pdf'][$this->mime] ?? 'jpg') : 'jpg';
+
+        return SafeFileName::part($patient->name).'-'.$this->slot_code.'-'.$this->session->session_date->format('d-m-Y').'.'.$ext;
     }
 
     /** Versi yang ditampilkan di galeri, perbandingan, dan report: hasil edit bila ada (FR-13). */

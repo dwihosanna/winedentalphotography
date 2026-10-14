@@ -128,6 +128,28 @@ class GalleryTest extends TestCase
             ->assertSee('1 foto sebelumnya diganti');
     }
 
+    public function test_photo_opens_in_app_viewer_with_back_and_share(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        [$patient, , $photos] = $this->patientWithPhotos($workspace, $dentist);
+        $photo = $photos['initial'];
+        $fileName = "{$patient->name}-IO-01-10-01-2026.jpg";
+
+        // Detail foto: ketuk foto = penampil dalam aplikasi (bukan tab baru), tombol Bagikan di bar atas.
+        $this->actingAs($dentist)->get("/foto/{$photo->id}")->assertOk()
+            ->assertSee(route('photos.image', $photo), false)
+            ->assertSee('data-share-file', false)
+            ->assertSee('data-name="'.e($fileName).'"', false)
+            ->assertDontSee('target="_blank"', false);
+
+        $this->actingAs($dentist)->get("/foto/{$photo->id}/tampil")->assertOk()
+            ->assertSee('aria-label="Kembali"', false)
+            ->assertSee(route('photos.show', $photo), false)
+            ->assertSee('Bagikan')
+            ->assertViewHas('fileName', $fileName)
+            ->assertViewHas('variant', 'original');
+    }
+
     public function test_gallery_pages_are_limited_to_own_workspace(): void
     {
         [$dentist, $workspace] = $this->dentistWithWorkspace();
@@ -137,5 +159,6 @@ class GalleryTest extends TestCase
         $this->actingAs($dentist)->get("/pasien/{$patient->id}/galeri")->assertNotFound();
         $this->actingAs($dentist)->get("/pasien/{$patient->id}/banding?slot=IO-01")->assertNotFound();
         $this->actingAs($dentist)->get("/foto/{$photos['initial']->id}")->assertNotFound();
+        $this->actingAs($dentist)->get("/foto/{$photos['initial']->id}/tampil")->assertNotFound();
     }
 }

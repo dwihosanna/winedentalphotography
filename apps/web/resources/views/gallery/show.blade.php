@@ -6,7 +6,11 @@
     <header class="app-bar">
         @include('partials.back', ['href' => route('gallery.index', $patient)])
         <p class="title">{{ $photo->slot_code }} · {{ $slot['label'] ?? '' }}</p>
-        <span></span>
+        @if ($photo->isImage())
+            <button class="action" type="button" data-share-file data-url="{{ $photo->url($photo->displayVariant()) }}" data-name="{{ $photo->shareFileName($patient, $photo->displayVariant()) }}" data-title="{{ $photo->slot_code }} · {{ $patient->name }}">Bagikan</button>
+        @else
+            <span></span>
+        @endif
     </header>
 
     <div class="page">
@@ -14,7 +18,7 @@
             <p class="status" role="status">{{ session('status') }}</p>
         @endif
         @if ($photo->isImage())
-            <a class="ts-host ts-lg" href="{{ $photo->url($photo->displayVariant()) }}" target="_blank" rel="noopener"><img class="photo-full" src="{{ $photo->url($photo->displayVariant()) }}" alt="{{ $slot['label'] ?? $photo->slot_code }}">@include('partials.timestamp')</a>
+            <a class="ts-host ts-lg" href="{{ route('photos.image', $photo) }}"><img class="photo-full" src="{{ $photo->url($photo->displayVariant()) }}" alt="{{ $slot['label'] ?? $photo->slot_code }}">@include('partials.timestamp')</a>
         @else
             <a class="btn btn-secondary" href="{{ route('photos.viewer', $photo) }}">Buka PDF</a>
         @endif
@@ -52,7 +56,7 @@
                 <div><dt>Ukuran</dt><dd>{{ $photo->width }} × {{ $photo->height }} px · {{ number_format($photo->original_bytes / 1048576, 1, ',', '.') }} MB</dd></div>
             @endif
             @if ($photo->edited_path)
-                <div><dt>Edit</dt><dd>{{ $photo->isAutoFlipped() ? 'Dibalik otomatis (foto cermin)' : 'Diedit' }} · <a href="{{ $photo->url('original') }}" target="_blank" rel="noopener">lihat asli</a></dd></div>
+                <div><dt>Edit</dt><dd>{{ $photo->isAutoFlipped() ? 'Dibalik otomatis (foto cermin)' : 'Diedit' }} · <a href="{{ route('photos.image', ['photo' => $photo, 'versi' => 'asli']) }}">lihat asli</a></dd></div>
             @endif
             @if ($versions > 1)
                 <div><dt>Riwayat</dt><dd>{{ $versions - 1 }} foto sebelumnya diganti (retake)</dd></div>
@@ -60,3 +64,7 @@
         </dl>
     </div>
 @endsection
+
+@push('scripts')
+    @vite('resources/js/share-file.js')
+@endpush
