@@ -60,30 +60,55 @@ class ReportController extends Controller
     {
         $this->authorize('report', $patient);
 
-        $data = $request->validate([
-            'ortho_case_id' => ['required', 'string'],
-            'before_session_id' => ['required', 'string'],
-            'after_session_id' => ['required', 'string', 'different:before_session_id'],
-            'slots' => ['required', 'array'],
-            'slots.*.include' => ['nullable', 'boolean'],
-            'slots.*.before' => ['nullable', 'string'],
-            'slots.*.after' => ['nullable', 'string'],
-            'anonymized' => ['nullable', 'boolean'],
-        ], ['after_session_id.different' => 'Pilih dua sesi yang berbeda.']);
+        [$case, $before, $after, $selection] = $this->resolveSelection($request, $patient, ['anonymized' => ['nullable', 'boolean']]);
 
-        $case = $patient->cases()->findOrFail($data['ortho_case_id']);
-        $before = $case->sessions()->findOrFail($data['before_session_id']);
-        $after = $case->sessions()->findOrFail($data['after_session_id']);
-
-        $anonymized = (bool) ($data['anonymized'] ?? false);
+        $anonymized = $request->boolean('anonymized');
         if ($anonymized && ! $this->hasPublicationConsent($patient)) {
             throw ValidationException::withMessages(['anonymized' => 'Report anonim untuk publikasi butuh consent publikasi pasien yang masih berlaku.']);
         }
 
-        $selection = $this->selection($data['slots'], $before, $after);
         $report = $generate($case, $before, $after, $selection, $anonymized, $request->user()->id);
 
         return redirect()->route('reports.show', $report)->with('status', 'Report dibuat.');
+    }
+
+    /**
+     * Preview presentasi di web dari pilihan yang sama dengan form report (tanpa membuat PDF),
+     * untuk menjelaskan hasil langsung ke pasien.
+     */
+    public function present(Request $request, Patient $patient): View
+    {
+        $this->authorize('report', $patient);
+
+        [$case, $before, $after, $selection] = $this->resolveSelection($request, $patient);
+        $photos = Photo::whereIn('id', collect($selection)->flatten()->filter())->get()->keyBy('id');
+        $slots = config('slots.slots');
+        // Presentasi bisa berlangsung lama: URL foto berlaku lebih panjang dari biasanya.
+        $minutes = config('dental.presentation_url_minutes');
+        $side = fn (?string $id, PhotoSession $session) => ($photo = $photos->get($id ?? '')) === null ? null : [
+            'url' => $photo->url($photo->displayVariant(), $minutes),
+            'date' => $session->session_date->format('d-m-Y'),
+            'stage' => $session->stageLabel(),
+        ];
+
+        $slides = collect($selection)
+            ->sortBy(fn ($_, $code) => array_search($code, array_keys($slots), true))
+            ->map(fn (array $pair, string $code) => [
+                'code' => $code,
+                'label' => $slots[$code]['label'],
+                'before' => $side($pair['before'], $before),
+                'after' => $side($pair['after'], $after),
+            ])->values();
+
+        AuditLog::record('present', $patient, ['case' => $case->id, 'before' => $before->id, 'after' => $after->id, 'slots' => array_keys($selection)]);
+
+        return view('reports.present', [
+            'patient' => $patient,
+            'case' => $case,
+            'title' => in_array($after->stage, [Stage::Debond, Stage::Retention, Stage::After], true) ? 'Before / After' : 'Progres',
+            'slides' => $slides,
+            'backUrl' => route('reports.create', ['patient' => $patient, 'case' => $case->id, 'before' => $before->id, 'after' => $after->id]),
+        ]);
     }
 
     public function show(Report $report): View
@@ -124,6 +149,31 @@ class ReportController extends Controller
         return $session->photos()->where('mime', 'like', 'image/%')
             ->orderByRaw('replaced_by_photo_id is not null')->orderByDesc('created_at')
             ->get()->groupBy('slot_code');
+    }
+
+    /**
+     * Validasi kasus, dua sesi, dan foto per slot dari form report (dipakai Buat PDF dan presentasi).
+     *
+     * @param  array<string, mixed>  $extraRules
+     * @return array{0: OrthoCase, 1: PhotoSession, 2: PhotoSession, 3: array<string, array{before: ?string, after: ?string}>}
+     */
+    private function resolveSelection(Request $request, Patient $patient, array $extraRules = []): array
+    {
+        $data = $request->validate([
+            'ortho_case_id' => ['required', 'string'],
+            'before_session_id' => ['required', 'string'],
+            'after_session_id' => ['required', 'string', 'different:before_session_id'],
+            'slots' => ['required', 'array'],
+            'slots.*.include' => ['nullable', 'boolean'],
+            'slots.*.before' => ['nullable', 'string'],
+            'slots.*.after' => ['nullable', 'string'],
+        ] + $extraRules, ['after_session_id.different' => 'Pilih dua sesi yang berbeda.']);
+
+        $case = $patient->cases()->findOrFail($data['ortho_case_id']);
+        $before = $case->sessions()->findOrFail($data['before_session_id']);
+        $after = $case->sessions()->findOrFail($data['after_session_id']);
+
+        return [$case, $before, $after, $this->selection($data['slots'], $before, $after)];
     }
 
     /**

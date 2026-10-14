@@ -161,7 +161,10 @@ class PatientPagesTest extends TestCase
     public function test_pages_are_installable_as_pwa(): void
     {
         $this->get('/login')->assertSee('rel="manifest" href="/manifest.webmanifest"', false)
-            ->assertSee('apple-touch-icon', false);
+            ->assertSee('apple-touch-icon', false)
+            ->assertSee('rel="icon" href="/icons/iconnew.svg"', false);
+        $this->assertFileExists(public_path('icons/iconnew.svg'));
+        $this->assertFileExists(public_path('icons/favicon-32.png'));
 
         $manifest = json_decode(file_get_contents(public_path('manifest.webmanifest')), true);
         $this->assertSame('standalone', $manifest['display']);

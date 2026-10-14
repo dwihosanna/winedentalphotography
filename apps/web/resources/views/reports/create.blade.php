@@ -84,7 +84,7 @@
 
                 <label class="check">
                     <input type="hidden" name="anonymized" value="0">
-                    <input type="checkbox" name="anonymized" value="1" @disabled(! $canAnonymize)>
+                    <input type="checkbox" name="anonymized" value="1" @disabled(! $canAnonymize) data-locked="{{ $canAnonymize ? '0' : '1' }}">
                     <span>
                         Anonim untuk edukasi/media sosial: sembunyikan nama, DPID, No. RM, tanggal lahir, dan tanggal sesi.
                         @unless ($canAnonymize)
@@ -94,6 +94,8 @@
                 </label>
 
                 <button class="btn btn-primary btn-block" type="submit" data-submit @disabled($slots->isEmpty())>Buat PDF</button>
+                <button class="btn btn-secondary btn-block" type="submit" formaction="{{ route('reports.present', $patient) }}" formmethod="get" data-present @disabled($slots->isEmpty())>Preview untuk presentasi</button>
+                <p class="muted">Preview menampilkan foto pilihan di layar penuh untuk dijelaskan langsung ke pasien, tanpa membuat PDF.</p>
             </form>
         @endif
 
@@ -130,6 +132,13 @@
             });
         }
         document.querySelector('[data-report-form]')?.addEventListener('submit', (e) => {
+            if (e.submitter?.matches('[data-present]')) {
+                // Preview memakai GET: token CSRF dan opsi anonim tidak perlu ikut ke URL.
+                const skip = e.target.querySelectorAll('[name=_token], [name=anonymized]');
+                skip.forEach((el) => el.disabled = true);
+                setTimeout(() => skip.forEach((el) => el.disabled = el.type === 'checkbox' && el.dataset.locked === '1'), 0);
+                return;
+            }
             const btn = e.target.querySelector('[data-submit]');
             btn.disabled = true;
             btn.textContent = 'Membuat PDF…';

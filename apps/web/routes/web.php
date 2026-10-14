@@ -34,6 +34,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/pasien/{patient}/banding', [GalleryController::class, 'compare'])->name('gallery.compare');
         Route::get('/pasien/{patient}/report/baru', [ReportController::class, 'create'])->name('reports.create');
         Route::post('/pasien/{patient}/report', [ReportController::class, 'store'])->name('reports.store');
+        Route::get('/pasien/{patient}/report/presentasi', [ReportController::class, 'present'])->name('reports.present');
         Route::get('/report/{report}', [ReportController::class, 'show'])->name('reports.show');
         Route::get('/report/{report}/pdf', [ReportController::class, 'pdf'])->name('reports.pdf');
         Route::get('/pasien/{patient}/arsip', [PhotoSessionController::class, 'index'])->name('sessions.index');

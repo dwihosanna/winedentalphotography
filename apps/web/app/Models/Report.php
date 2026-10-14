@@ -40,6 +40,17 @@ class Report extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** Parameter untuk membuka preview presentasi dengan pilihan foto report ini. */
+    public function presentationQuery(): array
+    {
+        return [
+            'ortho_case_id' => $this->ortho_case_id,
+            'before_session_id' => $this->before_session_id,
+            'after_session_id' => $this->after_session_id,
+            'slots' => collect($this->selected_photos)->map(fn (array $pair) => ['include' => 1] + $pair)->all(),
+        ];
+    }
+
     /** "Before / After" bila sesi sesudah = Lepas/Retensi/Sesudah; selain itu report progres (FR-26). */
     public function title(): string
     {

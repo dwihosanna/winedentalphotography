@@ -137,6 +137,43 @@ class ReportTest extends TestCase
         $this->assertTrue(AuditLog::where('action', 'export')->where('entity_id', $report->id)->exists());
     }
 
+    public function test_presentation_preview_shows_selection_without_creating_report(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        [$patient, $case, $before, $after] = $this->caseWithTwoSessions($workspace, $dentist);
+        $query = http_build_query($this->form($case, $before, $after, ['slots' => ['IO-04' => ['include' => 0]]]));
+
+        $res = $this->actingAs($dentist)->get("/pasien/{$patient->id}/report/presentasi?{$query}")->assertOk()
+            ->assertSee('Presentasi · Ayu Setiawati')->assertSee('Before / After');
+
+        $slides = $res->viewData('slides');
+        $this->assertSame(['EO-01', 'IO-01'], $slides->pluck('code')->all());
+        $this->assertSame('Awal', $slides[0]['before']['stage']);
+        $this->assertSame('Lepas', $slides[0]['after']['stage']);
+        // URL foto bertanda tangan, berlaku ±60 menit untuk presentasi.
+        parse_str(parse_url($slides[0]['after']['url'], PHP_URL_QUERY), $params);
+        $this->assertEqualsWithDelta(now()->addMinutes(60)->timestamp, (int) $params['expires'], 5);
+        $this->actingAs($dentist)->get($slides[0]['after']['url'])->assertOk();
+
+        $this->assertSame(0, Report::withoutGlobalScopes()->count());
+        $this->assertTrue(AuditLog::where('action', 'present')->where('entity_id', $patient->id)->exists());
+    }
+
+    public function test_saved_report_links_to_presentation_and_assistant_cannot_present(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        [$patient, $case, $before, $after] = $this->caseWithTwoSessions($workspace, $dentist);
+        $this->actingAs($dentist)->post("/pasien/{$patient->id}/report", $this->form($case, $before, $after))->assertRedirect();
+        $report = Report::withoutGlobalScopes()->sole();
+
+        $link = route('reports.present', ['patient' => $patient] + $report->presentationQuery());
+        $this->actingAs($dentist)->get("/report/{$report->id}")->assertSee(e($link), false);
+        $this->actingAs($dentist)->get($link)->assertOk()->assertViewHas('slides', fn ($slides) => $slides->count() === 3);
+
+        $this->flushSession();
+        $this->actingAs($this->assistantIn($workspace))->get($link)->assertForbidden();
+    }
+
     public function test_anonymized_report_requires_publication_consent_and_hides_identity(): void
     {
         [$dentist, $workspace] = $this->dentistWithWorkspace();

@@ -2,7 +2,7 @@
 
 return [
     // Versi aplikasi di footer. Naikkan setiap rilis ke produksi (1.01, 1.02, ...).
-    'version' => '1.01',
+    'version' => '1.02',
 
     // Versi syarat layanan yang berlaku. Menaikkan versi meminta semua pengguna menyetujui ulang (FR-27).
     'terms_version' => env('TERMS_VERSION', '2026-10-13'),
@@ -21,6 +21,9 @@ return [
 
     // URL file bertanda tangan berlaku sekian menit (SRS Bagian 9: 5–15 menit).
     'signed_url_minutes' => 10,
+
+    // URL foto di preview presentasi berlaku lebih lama: dokter bisa menjelaskan ke pasien sambil berdiskusi.
+    'presentation_url_minutes' => 60,
 
     // Peringatan bila tanggal EXIF foto unggahan berbeda lebih dari sekian hari dari tanggal sesi.
     'exif_date_warning_days' => 7,

@@ -63,9 +63,9 @@ class Photo extends Model
     }
 
     /** URL bertanda tangan berumur pendek; tidak ada URL publik permanen (SRS Bagian 9). */
-    public function url(string $variant = 'thumb'): string
+    public function url(string $variant = 'thumb', ?int $minutes = null): string
     {
-        return URL::temporarySignedRoute('photos.file', now()->addMinutes(config('dental.signed_url_minutes')), [
+        return URL::temporarySignedRoute('photos.file', now()->addMinutes($minutes ?? config('dental.signed_url_minutes')), [
             'photo' => $this->id, 'variant' => $variant,
         ]);
     }

@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#000000">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icons/iconnew.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
