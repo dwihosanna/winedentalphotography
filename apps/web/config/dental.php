@@ -2,7 +2,7 @@
 
 return [
     // Versi aplikasi di footer. Naikkan setiap rilis ke produksi (1.01, 1.02, ...).
-    'version' => '1.03',
+    'version' => '1.04',
 
     // Versi syarat layanan yang berlaku. Menaikkan versi meminta semua pengguna menyetujui ulang (FR-27).
     'terms_version' => env('TERMS_VERSION', '2026-10-13'),

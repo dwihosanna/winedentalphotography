@@ -155,7 +155,7 @@ class PatientPagesTest extends TestCase
     {
         config(['dental.version' => '1.23']);
 
-        $this->get('/login')->assertOk()->assertSee('© 2026 DP · Version 1.23');
+        $this->get('/login')->assertOk()->assertSee('© 2026 MarikhTech x Wine Dental Aesthetic · Version 1.23');
     }
 
     public function test_pages_are_installable_as_pwa(): void
