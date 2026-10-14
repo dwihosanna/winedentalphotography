@@ -9,6 +9,7 @@ use App\Models\PhotoSession;
 use App\Models\Report;
 use App\Models\Workspace;
 use App\Support\JpegMetadata;
+use App\Support\ReleaseDatabase;
 use App\Support\Thumbnail;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
@@ -33,9 +34,13 @@ class GenerateReport
      */
     public function __invoke(OrthoCase $case, PhotoSession $before, PhotoSession $after, array $selection, bool $anonymized, int $userId): Report
     {
-        $photos = Photo::whereIn('id', collect($selection)->flatten()->filter())->get()->keyBy('id');
+        $photos = Photo::with('session')->whereIn('id', collect($selection)->flatten()->filter())->get()->keyBy('id');
         $slots = config('slots.slots');
+        $case->loadMissing('patient.externalIds', 'dentist');
         $patient = $case->patient;
+        $workspace = Workspace::find($case->workspace_id);
+        // Semua data sudah dimuat; olah foto + render PDF (beberapa detik) tanpa menahan koneksi MySQL yang dibatasi hosting.
+        ReleaseDatabase::now();
 
         $rows = collect($selection)
             ->sortBy(fn ($_, $code) => array_search($code, array_keys($slots), true))
@@ -65,7 +70,7 @@ class GenerateReport
             'before' => $before,
             'after' => $after,
             'rows' => $rows,
-            'workspace' => Workspace::find($case->workspace_id),
+            'workspace' => $workspace,
             'rm' => $patient->externalIds->firstWhere('system', config('dental.default_rm_system'))?->value,
         ])->setPaper('a4')->output();
 

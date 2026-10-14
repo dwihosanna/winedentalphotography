@@ -8,6 +8,7 @@ use App\Models\PhotoSession;
 use App\Models\SlotTemplate;
 use App\Models\Workspace;
 use App\Support\JpegMetadata;
+use App\Support\ReleaseDatabase;
 use App\Support\SlotGuides;
 use App\Support\Thumbnail;
 use Illuminate\Http\UploadedFile;
@@ -43,6 +44,8 @@ class StorePhoto
                 : 'Format file harus '.($slot->kind === 'xray' ? 'JPG, PNG, atau PDF.' : 'JPG atau PNG.')]);
         }
 
+        // Pemrosesan gambar bisa beberapa detik: jangan tahan koneksi MySQL (dibatasi hosting) selama itu.
+        ReleaseDatabase::now();
         [$bytes, $info] = $this->prepare($file->getRealPath(), $mime);
         $disk = config('dental.photo_disk');
         $id = (string) Str::uuid();

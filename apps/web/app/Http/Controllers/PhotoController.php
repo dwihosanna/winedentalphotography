@@ -6,6 +6,7 @@ use App\Actions\StorePhoto;
 use App\Models\AuditLog;
 use App\Models\Photo;
 use App\Models\PhotoSession;
+use App\Support\ReleaseDatabase;
 use App\Support\SlotGuides;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -121,7 +122,12 @@ class PhotoController extends Controller
             AuditLog::record('view', $photo, ['variant' => $variant]); // thumbnail galeri tidak dicatat agar log tidak membanjir
         }
 
-        return Storage::disk($photo->disk)->response($path, null, [
+        $disk = $photo->disk;
+        // Koneksi MySQL dilepas sebelum file dikirim: hosting membatasi koneksi bersamaan, dan galeri memuat
+        // banyak thumbnail sekaligus. Sesi login disimpan di file, jadi sisa request tidak butuh database.
+        ReleaseDatabase::now();
+
+        return Storage::disk($disk)->response($path, null, [
             'Content-Type' => $variant === 'original' ? $photo->mime : 'image/jpeg',
             'Cache-Control' => 'private, max-age='.(config('dental.signed_url_minutes') * 60),
             'X-Content-Type-Options' => 'nosniff',

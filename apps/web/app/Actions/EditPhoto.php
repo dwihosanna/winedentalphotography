@@ -7,6 +7,7 @@ use App\Models\Photo;
 use App\Models\Workspace;
 use App\Support\JpegMetadata;
 use App\Support\PhotoEdit;
+use App\Support\ReleaseDatabase;
 use App\Support\Thumbnail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -33,6 +34,8 @@ class EditPhoto
         $dir = dirname($photo->original_path);
         $thumbPath = $photo->thumb_path ?? "$dir/{$photo->id}_thumb.jpg";
 
+        // Render bisa beberapa detik: jangan tahan koneksi MySQL (dibatasi hosting) selama itu.
+        ReleaseDatabase::now();
         $edited = $params === null || PhotoEdit::isIdentity($params) ? null : PhotoEdit::render($original, $params);
         $editedPath = $edited === null ? null : "$dir/{$photo->id}_edit_".Str::lower(Str::random(8)).'.jpg';
         if ($edited !== null) {
