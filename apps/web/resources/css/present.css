@@ -75,7 +75,7 @@ figcaption b { color: var(--ink); }
 
 /* Penampil foto tunggal (galeri → detail → ketuk foto): bar atas + foto penuh. */
 body.photo-viewer { grid-template-rows: auto minmax(0, 1fr); }
-.photo-viewer .bar { grid-template-columns: auto minmax(0, 1fr) auto; }
+.photo-viewer .bar { grid-template-columns: auto minmax(0, 1fr) auto auto; }
 .photo-viewer .share {
   min-height: 40px; padding: 0 14px; border-radius: 10px; background: var(--ink); color: #000;
   border: 0; font: inherit; font-weight: 600; cursor: pointer;

@@ -21,7 +21,8 @@
             <b>{{ $photo->slot_code }} · {{ $slot }}</b>
             <span>{{ $patient->name }} · {{ $photo->session->stageLabel() }} · {{ $photo->session->session_date->format('d-m-Y') }}{{ $variant === 'original' && $photo->edited_path ? ' · foto asli' : '' }}</span>
         </div>
-        <button class="share" type="button" data-share-file data-url="{{ $url }}" data-name="{{ $fileName }}" data-title="{{ $photo->slot_code }} · {{ $patient->name }}">Bagikan</button>
+        <button class="icon ts-toggle" type="button" data-timestamp-toggle aria-pressed="true" aria-label="Tampilkan/sembunyikan timestamp (ikut tercetak saat dibagikan)" title="Timestamp">🕒</button>
+        <button class="share" type="button" data-share-file data-stamp="{{ $photo->timestampText() }}" data-url="{{ $url }}" data-name="{{ $fileName }}" data-title="{{ $photo->slot_code }} · {{ $patient->name }}">Bagikan</button>
     </header>
 
     <main class="viewer">
