@@ -151,7 +151,7 @@ class ReportTest extends TestCase
         $query = http_build_query($this->form($case, $before, $after, ['slots' => ['IO-04' => ['include' => 0]]]));
 
         $res = $this->actingAs($dentist)->get("/pasien/{$patient->id}/report/presentasi?{$query}")->assertOk()
-            ->assertSee('Presentasi · Ayu Setiawati')->assertSee('Before / After');
+            ->assertSee('Case Report Preview · Ayu Setiawati')->assertSee('Before / After');
 
         $slides = $res->viewData('slides');
         $this->assertSame(['EO-01', 'IO-01'], $slides->pluck('code')->all());

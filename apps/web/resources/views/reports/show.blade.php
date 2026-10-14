@@ -15,7 +15,7 @@
         @endif
 
         <a class="btn btn-primary btn-block" href="{{ route('reports.viewer', $report) }}">Buka PDF</a>
-        <a class="btn btn-secondary btn-block" href="{{ route('reports.present', ['patient' => $patient] + $report->presentationQuery()) }}">Preview untuk presentasi</a>
+        <a class="btn btn-secondary btn-block" href="{{ route('reports.present', ['patient' => $patient] + $report->presentationQuery()) }}">Case Report Preview</a>
 
         <dl class="details">
             <div><dt>Pasien</dt><dd>{{ $patient->name }}{{ $report->anonymized ? ' (PDF anonim)' : '' }}</dd></div>

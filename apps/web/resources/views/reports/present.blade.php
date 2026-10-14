@@ -9,14 +9,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="robots" content="noindex">
-    <title>Presentasi · {{ $patient->name }}</title>
+    <title>Case Report Preview · {{ $patient->name }}</title>
     {{-- Latar gelap netral (bukan warna merek) agar warna gigi/gusi dinilai apa adanya, sama seperti layar kamera. --}}
     @include('partials.timestamp-pref')
     @vite(['resources/css/present.css', 'resources/js/present.js'])
 </head>
 <body data-no-update-banner>
     <header class="bar">
-        <a class="icon" href="{{ $backUrl }}" aria-label="Tutup presentasi">✕</a>
+        <a class="icon" href="{{ $backUrl }}" aria-label="Tutup Case Report Preview">✕</a>
         <div class="who">
             <b>{{ $patient->name }}</b>
             <span>{{ $title }} · {{ $case->kind->label() }} · {{ $case->label() }}</span>

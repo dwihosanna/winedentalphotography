@@ -100,8 +100,8 @@
                 </label>
 
                 <button class="btn btn-primary btn-block" type="submit" data-submit @disabled($slots->isEmpty())>Buat PDF</button>
-                <button class="btn btn-secondary btn-block" type="submit" formaction="{{ route('reports.present', $patient) }}" formmethod="get" data-present @disabled($slots->isEmpty())>Preview untuk presentasi</button>
-                <p class="muted">Preview menampilkan foto pilihan di layar penuh untuk dijelaskan langsung ke pasien, tanpa membuat PDF.</p>
+                <button class="btn btn-secondary btn-block" type="submit" formaction="{{ route('reports.present', $patient) }}" formmethod="get" data-present @disabled($slots->isEmpty())>Case Report Preview</button>
+                <p class="muted">Case Report Preview menampilkan foto pilihan di layar penuh untuk dijelaskan langsung ke pasien, tanpa membuat PDF.</p>
             </form>
         @endif
 
