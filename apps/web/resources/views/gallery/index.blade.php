@@ -43,6 +43,11 @@
                         <input id="to" class="input" type="date" name="to" value="{{ $filters['to'] ?? '' }}">
                     </div>
                 </div>
+                <div class="field">
+                    <span class="label">Tampilan</span>
+                    <div>@include('partials.timestamp-toggle')</div>
+                    <span class="hint">Tampilkan atau sembunyikan waktu foto diambil. Berlaku langsung, tanpa Terapkan.</span>
+                </div>
                 <div class="row-actions">
                     <button class="btn btn-primary" type="submit">Terapkan</button>
                     @if ($filtered)
@@ -51,7 +56,6 @@
                 </div>
             </form>
         </details>
-        <div class="row-actions">@include('partials.timestamp-toggle')</div>
     </div>
 
     @forelse ($groups as $code => $photos)
