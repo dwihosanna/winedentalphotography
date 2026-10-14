@@ -14,7 +14,7 @@
             <p class="status" role="status">{{ session('status') }}</p>
         @endif
 
-        <a class="btn btn-primary btn-block" href="{{ route('reports.pdf', $report) }}" target="_blank" rel="noopener">Buka PDF</a>
+        <a class="btn btn-primary btn-block" href="{{ route('reports.viewer', $report) }}">Buka PDF</a>
         <a class="btn btn-secondary btn-block" href="{{ route('reports.present', ['patient' => $patient] + $report->presentationQuery()) }}">Preview untuk presentasi</a>
 
         <dl class="details">

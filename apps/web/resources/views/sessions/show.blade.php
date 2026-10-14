@@ -42,7 +42,7 @@
                     @if ($photo && $photo->thumb_path)
                         <a href="{{ route('photos.show', $photo) }}"><img src="{{ $photo->url('thumb') }}" alt="{{ $slot->label }}" loading="lazy"></a>
                     @elseif ($photo)
-                        <a class="ph" href="{{ $photo->url('original') }}" target="_blank" rel="noopener">PDF</a>
+                        <a class="ph" href="{{ route('photos.viewer', $photo) }}">PDF</a>
                     @else
                         <span class="ph">{{ $slot->slot_code }}</span>
                     @endif

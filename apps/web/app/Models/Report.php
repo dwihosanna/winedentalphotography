@@ -40,6 +40,11 @@ class Report extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function pdfFileName(Patient $patient): string
+    {
+        return 'report-'.($this->anonymized ? 'anonim' : $patient->dpid).'-'.$this->created_at->format('Ymd').'.pdf';
+    }
+
     /** Parameter untuk membuka preview presentasi dengan pilihan foto report ini. */
     public function presentationQuery(): array
     {

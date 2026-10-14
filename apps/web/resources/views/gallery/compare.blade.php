@@ -43,7 +43,7 @@
                         @if ($photo->isImage())
                             <a href="{{ route('photos.show', $photo) }}"><img src="{{ $photo->url($photo->displayVariant()) }}" alt="{{ $label }}: {{ $slot['label'] }}, {{ $photo->session->session_date->format('d-m-Y') }}"></a>
                         @else
-                            <a class="ph" href="{{ $photo->url('original') }}" target="_blank" rel="noopener">PDF</a>
+                            <a class="ph" href="{{ route('photos.viewer', $photo) }}">PDF</a>
                         @endif
                         <figcaption><b>{{ $label }}</b> · {{ $photo->session->session_date->format('d-m-Y') }} · {{ $photo->session->stageLabel() }}</figcaption>
                     </figure>

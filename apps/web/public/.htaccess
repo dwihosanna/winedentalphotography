@@ -26,6 +26,8 @@
 
 # PWA (Hostinger/LiteSpeed): manifest dengan MIME yang benar; service worker selalu dicek ulang agar update cepat sampai.
 AddType application/manifest+json .webmanifest
+# Worker PDF.js berupa ES module (.mjs); LiteSpeed Hostinger mengirimnya sebagai text/plain dan browser menolaknya.
+AddType text/javascript .mjs
 <IfModule mod_headers.c>
     <FilesMatch "^(sw\.js|manifest\.webmanifest)$">
         Header set Cache-Control "no-cache"

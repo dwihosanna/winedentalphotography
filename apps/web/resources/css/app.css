@@ -127,3 +127,10 @@ details.card[open] > summary { margin-bottom: var(--space-3); }
 
 /* Keterangan sesi bisa multi-baris (textarea): baris baru tetap tampil. */
 .archive-row .note, .session-notes { white-space: pre-line; }
+
+/* Penampil PDF dalam aplikasi (report, rontgen PDF). */
+.pdf-page { background: var(--surface-2); }
+.pdf-pages { display: grid; gap: var(--space-3); padding: var(--space-3); max-width: 900px; margin: 0 auto; }
+.pdf-pages canvas { width: 100%; height: auto; display: block; background: #fff; border-radius: var(--radius-sm); box-shadow: var(--shadow); }
+.pdf-status { text-align: center; padding: var(--space-6) 0; }
+.app-bar .action:disabled { opacity: .5; }

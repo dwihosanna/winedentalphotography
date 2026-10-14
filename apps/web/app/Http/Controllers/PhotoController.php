@@ -107,6 +107,22 @@ class PhotoController extends Controller
         ], 201);
     }
 
+    /** Rontgen PDF di penampil dalam aplikasi (PWA iPhone tidak bisa membuka PDF di tab baru). */
+    public function viewer(Photo $photo): View
+    {
+        $this->authorize('view', $photo->session->orthoCase->patient);
+        abort_unless($photo->mime === 'application/pdf', 404);
+
+        $slot = config("slots.slots.{$photo->slot_code}.label", $photo->slot_code);
+
+        return view('pdf.viewer', [
+            'title' => $slot,
+            'pdfUrl' => $photo->url('original'),
+            'fileName' => "{$photo->slot_code}-{$photo->session->session_date->format('Ymd')}.pdf",
+            'backUrl' => route('photos.show', $photo),
+        ]);
+    }
+
     /** File lewat URL bertanda tangan + login + workspace; foto workspace lain = 404 dari route binding. */
     public function file(Photo $photo, string $variant): StreamedResponse
     {

@@ -119,6 +119,21 @@ class ReportController extends Controller
         return view('reports.show', ['report' => $report->load('beforeSession', 'afterSession', 'creator'), 'patient' => $patient]);
     }
 
+    /** PDF di penampil dalam aplikasi: PWA iPhone tidak bisa membuka PDF di tab baru (tanpa tombol kembali). */
+    public function viewer(Report $report): View
+    {
+        $patient = $report->orthoCase->patient;
+        $this->authorize('report', $patient);
+        abort_if($report->pdf_path === null, 404);
+
+        return view('pdf.viewer', [
+            'title' => $report->title().' · '.$patient->name,
+            'pdfUrl' => route('reports.pdf', $report),
+            'fileName' => $report->pdfFileName($patient),
+            'backUrl' => route('reports.show', $report),
+        ]);
+    }
+
     public function pdf(Report $report): StreamedResponse
     {
         $patient = $report->orthoCase->patient;
@@ -126,9 +141,8 @@ class ReportController extends Controller
         abort_if($report->pdf_path === null, 404);
 
         AuditLog::record('export', $report);
-        $name = 'report-'.($report->anonymized ? 'anonim' : $patient->dpid).'-'.$report->created_at->format('Ymd').'.pdf';
 
-        return Storage::disk($report->disk)->response($report->pdf_path, $name, [
+        return Storage::disk($report->disk)->response($report->pdf_path, $report->pdfFileName($patient), [
             'Content-Type' => 'application/pdf',
             'Cache-Control' => 'private, no-store',
             'X-Content-Type-Options' => 'nosniff',

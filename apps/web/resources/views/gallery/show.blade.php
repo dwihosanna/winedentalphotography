@@ -16,7 +16,7 @@
         @if ($photo->isImage())
             <a href="{{ $photo->url($photo->displayVariant()) }}" target="_blank" rel="noopener"><img class="photo-full" src="{{ $photo->url($photo->displayVariant()) }}" alt="{{ $slot['label'] ?? $photo->slot_code }}"></a>
         @else
-            <a class="btn btn-secondary" href="{{ $photo->url('original') }}" target="_blank" rel="noopener">Buka PDF</a>
+            <a class="btn btn-secondary" href="{{ route('photos.viewer', $photo) }}">Buka PDF</a>
         @endif
 
         <div class="row-actions">

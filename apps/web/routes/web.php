@@ -37,6 +37,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/pasien/{patient}/report/presentasi', [ReportController::class, 'present'])->name('reports.present');
         Route::get('/report/{report}', [ReportController::class, 'show'])->name('reports.show');
         Route::get('/report/{report}/pdf', [ReportController::class, 'pdf'])->name('reports.pdf');
+        Route::get('/report/{report}/lihat', [ReportController::class, 'viewer'])->name('reports.viewer');
         Route::get('/pasien/{patient}/arsip', [PhotoSessionController::class, 'index'])->name('sessions.index');
         Route::get('/pasien/{patient}/sesi/baru', [PhotoSessionController::class, 'create'])->name('sessions.create');
         Route::post('/pasien/{patient}/sesi', [PhotoSessionController::class, 'store'])->name('sessions.store');
@@ -47,6 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/sesi/{session}/unggah', [PhotoController::class, 'upload'])->name('sessions.upload');
         Route::post('/sesi/{session}/foto', [PhotoController::class, 'store'])->name('photos.store');
         Route::get('/foto/{photo}', [GalleryController::class, 'show'])->name('photos.show');
+        Route::get('/foto/{photo}/lihat', [PhotoController::class, 'viewer'])->name('photos.viewer');
         Route::get('/foto/{photo}/ubah', [PhotoEditController::class, 'edit'])->name('photos.edit');
         Route::put('/foto/{photo}/ubah', [PhotoEditController::class, 'update'])->name('photos.update');
         Route::delete('/foto/{photo}/ubah', [PhotoEditController::class, 'destroy'])->name('photos.reset');

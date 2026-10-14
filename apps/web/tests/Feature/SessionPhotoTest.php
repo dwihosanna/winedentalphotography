@@ -198,8 +198,11 @@ class SessionPhotoTest extends TestCase
 
         $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", ['file' => $pdf, 'slot_code' => 'IO-01', 'source' => 'upload'])
             ->assertUnprocessable()->assertJsonValidationErrors('file');
-        $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", ['file' => $pdf, 'slot_code' => 'RX-01', 'source' => 'upload'])
-            ->assertCreated();
+        $rx = $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", ['file' => $pdf, 'slot_code' => 'RX-01', 'source' => 'upload'])
+            ->assertCreated()->json('id');
+        // Rontgen PDF dibuka di penampil dalam aplikasi; foto biasa tidak punya halaman penampil PDF.
+        $this->actingAs($dentist)->get("/foto/{$rx}/lihat")->assertOk()->assertSee('pdf-config', false)->assertSee('Rontgen panoramik');
+        $this->actingAs($dentist)->get("/sesi/{$session->id}")->assertSee(route('photos.viewer', $rx), false);
         $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", ['file' => $this->jpeg(), 'slot_code' => 'XX-99', 'source' => 'upload'])
             ->assertUnprocessable()->assertJsonValidationErrors('slot_code');
     }

@@ -131,7 +131,11 @@ class ReportTest extends TestCase
         $this->assertStringContainsString('Before / After', $html());
         $this->assertStringNotContainsString('IO-04', $html());
 
-        $this->actingAs($dentist)->get("/report/{$report->id}")->assertOk()->assertSee('Buka PDF');
+        // Buka PDF = penampil dalam aplikasi (PWA iPhone tidak bisa membuka PDF di tab baru).
+        $this->actingAs($dentist)->get("/report/{$report->id}")->assertOk()->assertSee('Buka PDF')
+            ->assertSee(route('reports.viewer', $report), false);
+        $this->actingAs($dentist)->get("/report/{$report->id}/lihat")->assertOk()
+            ->assertSee('pdf-config', false)->assertViewHas('pdfUrl', route('reports.pdf', $report))->assertSee('Bagikan');
         $this->actingAs($dentist)->get("/report/{$report->id}/pdf")->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertTrue(AuditLog::where('action', 'create')->where('entity_id', $report->id)->exists());
         $this->assertTrue(AuditLog::where('action', 'export')->where('entity_id', $report->id)->exists());
@@ -227,6 +231,7 @@ class ReportTest extends TestCase
         $this->actingAs($assistant)->get("/pasien/{$patient->id}/report/baru")->assertForbidden();
         $this->actingAs($assistant)->post("/pasien/{$patient->id}/report", $this->form($case, $before, $after))->assertForbidden();
         $this->actingAs($assistant)->get("/report/{$report->id}/pdf")->assertForbidden();
+        $this->actingAs($assistant)->get("/report/{$report->id}/lihat")->assertForbidden();
     }
 
     public function test_reports_are_limited_to_own_workspace(): void

@@ -7,7 +7,7 @@ export default defineConfig({
             input: [
                 'resources/css/app.css', 'resources/js/app.js', 'resources/js/patients.js', 'resources/js/upload.js',
                 'resources/css/camera.css', 'resources/js/camera.js', 'resources/js/editor.js',
-                'resources/css/present.css', 'resources/js/present.js',
+                'resources/css/present.css', 'resources/js/present.js', 'resources/js/pdf-viewer.js',
             ],
             refresh: true,
         }),
