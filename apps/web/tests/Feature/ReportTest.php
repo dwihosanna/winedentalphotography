@@ -136,7 +136,10 @@ class ReportTest extends TestCase
             ->assertSee(route('reports.viewer', $report), false);
         $this->actingAs($dentist)->get("/report/{$report->id}/lihat")->assertOk()
             ->assertSee('pdf-config', false)->assertViewHas('pdfUrl', route('reports.pdf', $report))->assertSee('Bagikan');
-        $this->actingAs($dentist)->get("/report/{$report->id}/pdf")->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $pdf = $this->actingAs($dentist)->get("/report/{$report->id}/pdf")->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $fileName = 'Report-Ayu Setiawati-'.$report->created_at->format('d-m-Y').'.pdf';
+        $this->assertStringContainsString($fileName, $pdf->headers->get('Content-Disposition'));
+        $this->actingAs($dentist)->get("/report/{$report->id}/lihat")->assertViewHas('fileName', $fileName);
         $this->assertTrue(AuditLog::where('action', 'create')->where('entity_id', $report->id)->exists());
         $this->assertTrue(AuditLog::where('action', 'export')->where('entity_id', $report->id)->exists());
     }
@@ -199,6 +202,18 @@ class ReportTest extends TestCase
         $this->assertStringNotContainsString($patient->dpid, $html());
         $this->assertStringNotContainsString('10-01-2025', $html());
         $this->assertStringContainsString('18 bulan', $html());
+    }
+
+    public function test_pdf_file_name_hides_name_when_anonymized_and_strips_unsafe_characters(): void
+    {
+        $report = new Report(['anonymized' => false]);
+        $report->created_at = now()->setDate(2026, 10, 14);
+
+        $this->assertSame('Report-Ayu Setiawati-14-10-2026.pdf', $report->pdfFileName(new Patient(['name' => 'Ayu  Setiawati'])));
+        $this->assertSame('Report-Siti A. Rahma-14-10-2026.pdf', $report->pdfFileName(new Patient(['name' => 'Siti A./Rahma?'])));
+
+        $report->anonymized = true;
+        $this->assertSame('Report-Anonim-14-10-2026.pdf', $report->pdfFileName(new Patient(['name' => 'Ayu Setiawati'])));
     }
 
     public function test_selection_must_match_chosen_sessions(): void

@@ -40,9 +40,14 @@ class Report extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** Nama file unduhan/bagikan: Report-Nama Pasien-dd-mm-yyyy.pdf (report anonim: Report-Anonim-...). */
     public function pdfFileName(Patient $patient): string
     {
-        return 'report-'.($this->anonymized ? 'anonim' : $patient->dpid).'-'.$this->created_at->format('Ymd').'.pdf';
+        $name = $this->anonymized ? 'Anonim' : $patient->name;
+        // Ganti karakter yang tidak boleh ada di nama file (Windows/iOS) dengan spasi, lalu rapikan spasi.
+        $name = trim(preg_replace('/\s+/u', ' ', preg_replace('~[\\/:*?"<>|\x00-\x1F]~u', ' ', $name)));
+
+        return 'Report-'.(mb_substr($name, 0, 80) ?: 'Pasien').'-'.$this->created_at->format('d-m-Y').'.pdf';
     }
 
     /** Parameter untuk membuka preview presentasi dengan pilihan foto report ini. */
