@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\CaseKind;
 use App\Models\OrthoCase;
 use App\Models\Patient;
 use App\Models\User;
@@ -14,9 +15,16 @@ class OrthoCaseFactory extends Factory
     {
         return [
             'patient_id' => Patient::factory(),
-            'brace_type' => 'Metal',
+            'kind' => CaseKind::Ortho,
+            'brace_type' => 'Konvensional (R)',
             'installed_on' => now()->toDateString(),
             'dentist_user_id' => User::factory(),
         ];
+    }
+
+    /** Kasus non-ortho (tambalan, scaling, dll.). */
+    public function general(string $treatment = 'Tambalan'): static
+    {
+        return $this->state(['kind' => CaseKind::General, 'brace_type' => null, 'treatment_type' => $treatment, 'installed_on' => null]);
     }
 }

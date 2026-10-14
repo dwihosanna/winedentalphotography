@@ -30,7 +30,7 @@
         {{-- Metadata otomatis (FR-18), tanpa input manual. --}}
         <dl class="details">
             <div><dt>Pasien</dt><dd>{{ $patient->name }} · {{ $patient->dpid }}</dd></div>
-            <div><dt>Kasus</dt><dd>{{ $case->brace_type }}{{ $case->installed_on ? ' · dipasang '.$case->installed_on->format('d-m-Y') : '' }}</dd></div>
+            <div><dt>Kasus</dt><dd>{{ $case->kind->label() }} · {{ $case->label() }}{{ $case->installed_on ? ' · dipasang '.$case->installed_on->format('d-m-Y') : '' }}</dd></div>
             <div><dt>Sesi</dt><dd>{{ $session->stageLabel() }} · {{ $session->session_date->translatedFormat('d F Y') }}</dd></div>
             <div><dt>Kategori</dt><dd>{{ $photo->slot_code }} · {{ $slot['label'] ?? $photo->category }}</dd></div>
             <div><dt>Sumber</dt><dd>{{ $photo->source === 'camera' ? 'Kamera aplikasi' : 'Unggahan' }}{{ $photo->original_name ? ' · '.$photo->original_name : '' }}</dd></div>

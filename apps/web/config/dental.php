@@ -1,6 +1,9 @@
 <?php
 
 return [
+    // Versi aplikasi di footer. Naikkan setiap rilis ke produksi (1.01, 1.02, ...).
+    'version' => '1.01',
+
     // Versi syarat layanan yang berlaku. Menaikkan versi meminta semua pengguna menyetujui ulang (FR-27).
     'terms_version' => env('TERMS_VERSION', '2026-10-13'),
 
@@ -21,4 +24,13 @@ return [
 
     // Peringatan bila tanggal EXIF foto unggahan berbeda lebih dari sekian hari dari tanggal sesi.
     'exif_date_warning_days' => 7,
+
+    // Pilihan tipe behel kasus ortho (14 Okt 2026); "Lainnya" di form membuka isian teks bebas.
+    'brace_types' => [
+        'Konvensional (R)', 'Konvensional (P)', 'Konvensional (C)', 'Konvensional (S)',
+        'SL Metal', 'SL Clear', 'Damon',
+    ],
+
+    // Pilihan jenis perawatan kasus non-ortho; "Lainnya" membuka isian teks bebas.
+    'treatment_types' => ['Tambalan', 'Scaling', 'Bleaching', 'Veneer', 'Crown/Gigi tiruan'],
 ];

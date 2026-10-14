@@ -111,3 +111,16 @@ details.card[open] > summary { margin-bottom: var(--space-3); }
 .report-pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 .report-pick { display: grid; gap: var(--space-1); align-content: start; }
 .report-pick img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface-2); }
+
+/* Pilihan jenis kasus (ortho / non-ortho). */
+.field > .label { font-size: var(--fs-sm); font-weight: 500; color: var(--muted); }
+.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.segmented label { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--tap); color: var(--text); font-size: var(--fs-md); cursor: pointer; }
+.segmented label + label { border-left: 1px solid var(--line); }
+.segmented label:has(input:checked) { background: var(--primary); color: #fff; }
+.segmented input { position: absolute; opacity: 0; pointer-events: none; }
+[data-other-input] { margin-top: var(--space-2); }
+
+/* Footer versi aplikasi. */
+.app-footer { padding: var(--space-4) var(--space-4) calc(env(safe-area-inset-bottom, 0px) + var(--space-4)); text-align: center; font-size: var(--fs-xs); color: var(--muted); }
+.has-tab-bar .app-footer { padding-bottom: var(--space-2); }

@@ -24,7 +24,7 @@
                         <label for="case">Kasus</label>
                         <select id="case" class="select" name="case">
                             @foreach ($cases as $c)
-                                <option value="{{ $c->id }}" @selected($c->is($case))>{{ $c->brace_type ?: 'Kasus' }} · {{ $c->sessions->count() }} sesi{{ $c->installed_on ? ' · '.$c->installed_on->format('m/Y') : '' }}</option>
+                                <option value="{{ $c->id }}" @selected($c->is($case))>{{ $c->kind->label() }} · {{ $c->label() }} · {{ $c->sessions->count() }} sesi{{ $c->installed_on ? ' · '.$c->installed_on->format('m/Y') : '' }}</option>
                             @endforeach
                         </select>
                     </div>

@@ -40,9 +40,9 @@ class Report extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /** "Before / After" bila sesi sesudah = Lepas/Retensi; selain itu report progres (FR-26). */
+    /** "Before / After" bila sesi sesudah = Lepas/Retensi/Sesudah; selain itu report progres (FR-26). */
     public function title(): string
     {
-        return in_array($this->afterSession?->stage, [Stage::Debond, Stage::Retention], true) ? 'Before / After' : 'Report Progres';
+        return in_array($this->afterSession?->stage, [Stage::Debond, Stage::Retention, Stage::After], true) ? 'Before / After' : 'Report Progres';
     }
 }

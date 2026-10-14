@@ -5,12 +5,15 @@
 //
 // Aturan dokter (13 Okt 2026): sesi Awal wajib EO-01–03 + IO-01–07; kunjungan berikutnya wajib IO-01–07,
 // EO opsional; FREE selalu opsional. Rontgen (RX) opsional di semua tahap: bisa diunggah di kunjungan berikutnya.
+// Kasus non-ortho (14 Okt 2026): tahap Sebelum/Sesudah, semua slot opsional; sesi lengkap bila ada minimal 1 foto.
 
 $followUp = [
     'EO-01' => false, 'EO-02' => false, 'EO-03' => false,
     'IO-01' => true, 'IO-02' => true, 'IO-03' => true, 'IO-04' => true, 'IO-05' => true, 'IO-06' => true, 'IO-07' => true,
     'FREE' => false, 'RX-01' => false, 'RX-02' => false,
 ];
+
+$general = array_map(fn () => false, $followUp);
 
 return [
     'slots' => [
@@ -40,5 +43,7 @@ return [
         'control' => $followUp,
         'debond' => $followUp,
         'retention' => $followUp,
+        'before' => $general,
+        'after' => $general,
     ],
 ];

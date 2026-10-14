@@ -46,13 +46,13 @@ class SlotRulesTest extends TestCase
     public function test_xray_is_optional_in_every_stage(): void
     {
         $this->assertSame(0, SlotTemplate::where('kind', 'xray')->where('required', true)->count());
-        $this->assertSame(10, SlotTemplate::where('kind', 'xray')->count());
+        $this->assertSame(2 * count(Stage::cases()), SlotTemplate::where('kind', 'xray')->count());
     }
 
     public function test_free_slot_is_always_optional(): void
     {
         $this->assertSame(0, SlotTemplate::where('slot_code', 'FREE')->where('required', true)->count());
-        $this->assertSame(5, SlotTemplate::where('slot_code', 'FREE')->count());
+        $this->assertSame(count(Stage::cases()), SlotTemplate::where('slot_code', 'FREE')->count());
     }
 
     public function test_session_is_complete_only_when_required_slots_are_filled_and_retakes_do_not_count_twice(): void
@@ -89,6 +89,28 @@ class SlotRulesTest extends TestCase
 
         $this->assertSame('draft', $session->status);
         $this->assertSame(self::EO, $session->missingRequiredSlots());
+    }
+
+    public function test_non_ortho_stages_have_all_slots_optional(): void
+    {
+        foreach ([Stage::Before, Stage::After] as $stage) {
+            $this->assertSame(0, SlotTemplate::where('stage', $stage)->where('required', true)->count(), $stage->value);
+            $this->assertSame(13, SlotTemplate::where('stage', $stage)->count(), $stage->value);
+        }
+    }
+
+    public function test_non_ortho_session_is_complete_once_it_has_one_photo(): void
+    {
+        [, $workspace] = $this->dentistWithWorkspace();
+        $this->inWorkspace($workspace);
+        $session = PhotoSession::factory()->create(['stage' => Stage::Before]);
+
+        $session->refreshStatus();
+        $this->assertSame('draft', $session->status);
+
+        Photo::factory()->create(['photo_session_id' => $session->id, 'slot_code' => 'FREE']);
+        $session->refreshStatus();
+        $this->assertSame('complete', $session->status);
     }
 
     public function test_control_number_increments_per_case(): void

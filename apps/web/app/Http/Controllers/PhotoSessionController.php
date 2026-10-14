@@ -35,15 +35,12 @@ class PhotoSessionController extends Controller
     {
         $this->authorize('view', $patient);
 
-        $cases = $patient->cases()->where('status', 'active')->orderByDesc('created_at')->get();
-        $hasSessions = $cases->isNotEmpty() && PhotoSession::whereIn('ortho_case_id', $cases->pluck('id'))->exists();
+        $cases = $patient->cases()->where('status', 'active')->withCount('sessions')->orderByDesc('created_at')->get();
 
         return view('sessions.create', [
             'patient' => $patient,
             'cases' => $cases,
             'canCreateCase' => $this->current->isDentist(),
-            // Saran tahap: Awal untuk kasus baru, Kontrol berikutnya bila sudah ada sesi (SRS 6.4).
-            'suggestedStage' => $hasSessions ? Stage::Control : Stage::Initial,
         ]);
     }
 
@@ -53,12 +50,8 @@ class PhotoSessionController extends Controller
         $data = $request->validated();
 
         $session = DB::transaction(function () use ($data, $patient, $request) {
-            if ($data['ortho_case_id'] === 'new') {
-                $case = $patient->cases()->create([
-                    'brace_type' => $data['brace_type'],
-                    'installed_on' => $data['installed_on'] ?? null,
-                    'dentist_user_id' => $request->user()->id,
-                ]);
+            if ($request->isNewCase()) {
+                $case = $patient->cases()->create($request->caseAttributes() + ['dentist_user_id' => $request->user()->id]);
                 AuditLog::record('create', $case);
             } else {
                 $case = OrthoCase::lockForUpdate()->findOrFail($data['ortho_case_id']);

@@ -35,7 +35,7 @@ class ReportController extends Controller
 
         $after = $sessions->firstWhere('id', $request->query('after')) ?? $sessions->last();
         $before = $sessions->firstWhere('id', $request->query('before'))
-            ?? $sessions->first(fn (PhotoSession $s) => $s->stage === Stage::Initial && $s->isNot($after))
+            ?? $sessions->first(fn (PhotoSession $s) => in_array($s->stage, [Stage::Initial, Stage::Before], true) && $s->isNot($after))
             ?? $sessions->first(fn (PhotoSession $s) => $s->isNot($after));
 
         $options = ['before' => $this->photoOptions($before), 'after' => $this->photoOptions($after)];

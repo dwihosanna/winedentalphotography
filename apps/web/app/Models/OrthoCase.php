@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CaseKind;
 use App\Enums\Stage;
 use App\Models\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -11,15 +12,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-/** Kasus ortodonti (FR-04). Satu pasien bisa punya lebih dari satu kasus, mis. retreatment. */
-#[Fillable(['patient_id', 'brace_type', 'installed_on', 'removed_on', 'dentist_user_id', 'status'])]
+/**
+ * Kasus perawatan (FR-04): ortodonti atau non-ortho (tambalan, scaling, dll.).
+ * Satu pasien bisa punya lebih dari satu kasus, mis. retreatment atau tambalan di luar perawatan behel.
+ */
+#[Fillable(['patient_id', 'kind', 'brace_type', 'treatment_type', 'installed_on', 'removed_on', 'dentist_user_id', 'status'])]
 class OrthoCase extends Model
 {
     use BelongsToWorkspace, HasFactory, HasUuids;
 
     protected function casts(): array
     {
-        return ['installed_on' => 'date', 'removed_on' => 'date'];
+        return ['kind' => CaseKind::class, 'installed_on' => 'date', 'removed_on' => 'date'];
     }
 
     public function patient(): BelongsTo
@@ -35,6 +39,17 @@ class OrthoCase extends Model
     public function sessions(): HasMany
     {
         return $this->hasMany(PhotoSession::class);
+    }
+
+    public function isOrtho(): bool
+    {
+        return $this->kind !== CaseKind::General;
+    }
+
+    /** Nama singkat kasus di daftar pilihan: tipe behel (ortho) atau jenis perawatan (non-ortho). */
+    public function label(): string
+    {
+        return $this->isOrtho() ? ($this->brace_type ?: 'Ortodonti') : ($this->treatment_type ?: 'Non-ortho');
     }
 
     /** Nomor kontrol berikutnya untuk sesi Kontrol baru (FR-05). */

@@ -55,10 +55,15 @@ class PhotoSession extends Model
         return $this->slots()->where('required', true)->pluck('slot_code')->diff($filled)->values()->all();
     }
 
-    /** Status "lengkap" hanya bila semua slot wajib terisi; selain itu draft (FR-09). */
+    /**
+     * Status "lengkap" hanya bila semua slot wajib terisi; selain itu draft (FR-09).
+     * Tahap tanpa slot wajib (non-ortho) lengkap bila sudah ada minimal satu foto.
+     */
     public function refreshStatus(): void
     {
-        $this->status = $this->missingRequiredSlots() === [] ? 'complete' : 'draft';
+        $hasRequired = $this->slots()->contains('required', true);
+        $complete = $this->missingRequiredSlots() === [] && ($hasRequired || $this->currentPhotos()->exists());
+        $this->status = $complete ? 'complete' : 'draft';
         $this->save();
     }
 

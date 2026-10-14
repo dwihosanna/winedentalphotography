@@ -19,6 +19,7 @@
 </head>
 <body class="@yield('body-class')">
     @yield('body')
+    <footer class="app-footer">© 2026 DP · Version {{ config('dental.version') }}</footer>
     @stack('scripts')
 </body>
 </html>

@@ -151,6 +151,13 @@ class PatientPagesTest extends TestCase
         $this->actingAs($dentist)->get("/pasien/{$patient->id}/ubah")->assertOk()->assertSee($patient->dpid);
     }
 
+    public function test_footer_shows_app_version(): void
+    {
+        config(['dental.version' => '1.23']);
+
+        $this->get('/login')->assertOk()->assertSee('© 2026 DP · Version 1.23');
+    }
+
     public function test_pages_are_installable_as_pwa(): void
     {
         $this->get('/login')->assertSee('rel="manifest" href="/manifest.webmanifest"', false)

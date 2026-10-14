@@ -49,7 +49,7 @@
         <tr>
             @if ($report->anonymized)
                 <td><span class="k">Pasien</span>Anonim</td>
-                <td><span class="k">Tipe behel</span>{{ $case->brace_type ?: '—' }}</td>
+                <td><span class="k">{{ $case->isOrtho() ? 'Tipe behel' : 'Perawatan' }}</span>{{ $case->label() }}</td>
                 <td><span class="k">Jarak sesi</span>{{ (int) $before->session_date->diffInMonths($after->session_date) }} bulan</td>
                 <td><span class="k">Dokter</span>{{ $case->dentist?->name ?? '—' }}</td>
             @else
@@ -61,9 +61,13 @@
         </tr>
         @unless ($report->anonymized)
             <tr>
-                <td><span class="k">Tipe behel</span>{{ $case->brace_type ?: '—' }}</td>
-                <td><span class="k">Dipasang</span>{{ $case->installed_on?->format('d-m-Y') ?? '—' }}</td>
-                <td><span class="k">Dilepas</span>{{ $case->removed_on?->format('d-m-Y') ?? '—' }}</td>
+                @if ($case->isOrtho())
+                    <td><span class="k">Tipe behel</span>{{ $case->label() }}</td>
+                    <td><span class="k">Dipasang</span>{{ $case->installed_on?->format('d-m-Y') ?? '—' }}</td>
+                    <td><span class="k">Dilepas</span>{{ $case->removed_on?->format('d-m-Y') ?? '—' }}</td>
+                @else
+                    <td colspan="3"><span class="k">Perawatan</span>{{ $case->label() }}</td>
+                @endif
                 <td><span class="k">Dokter</span>{{ $case->dentist?->name ?? '—' }}</td>
             </tr>
         @endunless

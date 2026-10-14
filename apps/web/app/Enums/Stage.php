@@ -2,7 +2,10 @@
 
 namespace App\Enums;
 
-/** Tahap sesi foto (FR-05). Sesi Awal memakai aturan slot sendiri; tahap lain = kunjungan berikutnya (SRS 6.1). */
+/**
+ * Tahap sesi foto (FR-05). Ortho: sesi Awal memakai aturan slot sendiri; tahap lain = kunjungan berikutnya (SRS 6.1).
+ * Non-ortho: Sebelum/Sesudah, semua slot opsional (lihat CaseKind).
+ */
 enum Stage: string
 {
     case Initial = 'initial';
@@ -10,6 +13,8 @@ enum Stage: string
     case Control = 'control';
     case Debond = 'debond';
     case Retention = 'retention';
+    case Before = 'before';
+    case After = 'after';
 
     public function label(): string
     {
@@ -19,6 +24,8 @@ enum Stage: string
             self::Control => 'Kontrol',
             self::Debond => 'Lepas',
             self::Retention => 'Retensi',
+            self::Before => 'Sebelum',
+            self::After => 'Sesudah',
         };
     }
 }

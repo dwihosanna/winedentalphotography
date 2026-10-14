@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CaseKind;
 use App\Enums\Stage;
 use App\Models\AuditLog;
 use App\Models\OrthoCase;
@@ -54,7 +55,7 @@ class SessionPhotoTest extends TestCase
 
         $this->actingAs($dentist)->get("/pasien/{$patient->id}/sesi/baru")->assertOk()->assertSee('Kasus baru');
         $this->actingAs($dentist)->post("/pasien/{$patient->id}/sesi", [
-            'ortho_case_id' => 'new', 'brace_type' => 'Metal', 'stage' => 'initial', 'session_date' => '2023-03-01',
+            'ortho_case_id' => 'new', 'case_kind' => 'ortho', 'brace_type' => 'SL Metal', 'stage' => 'initial', 'session_date' => '2023-03-01',
         ])->assertRedirect();
 
         $session = PhotoSession::withoutGlobalScopes()->firstOrFail();
@@ -85,7 +86,7 @@ class SessionPhotoTest extends TestCase
         $case = $this->in($workspace, fn () => OrthoCase::factory()->create());
 
         $this->actingAs($assistant)->post("/pasien/{$case->patient_id}/sesi", [
-            'ortho_case_id' => 'new', 'brace_type' => 'Metal', 'stage' => 'initial', 'session_date' => now()->toDateString(),
+            'ortho_case_id' => 'new', 'case_kind' => 'ortho', 'brace_type' => 'SL Metal', 'stage' => 'initial', 'session_date' => now()->toDateString(),
         ])->assertForbidden();
         $this->actingAs($assistant)->post("/pasien/{$case->patient_id}/sesi", [
             'ortho_case_id' => $case->id, 'stage' => 'control', 'session_date' => now()->toDateString(),
@@ -101,6 +102,49 @@ class SessionPhotoTest extends TestCase
         $this->actingAs($dentist)->post("/pasien/{$patient->id}/sesi", [
             'ortho_case_id' => $other->id, 'stage' => 'control', 'session_date' => now()->toDateString(),
         ])->assertSessionHasErrors('ortho_case_id');
+    }
+
+    public function test_dentist_creates_non_ortho_case_with_before_stage(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        $patient = $this->in($workspace, fn () => Patient::factory()->create());
+
+        $this->actingAs($dentist)->get("/pasien/{$patient->id}/sesi/baru")->assertOk()->assertSee('Non-ortho')->assertSee('Konvensional (R)')->assertSee('Scaling');
+        $this->actingAs($dentist)->post("/pasien/{$patient->id}/sesi", [
+            'ortho_case_id' => 'new', 'case_kind' => 'general', 'treatment_type' => 'other', 'treatment_type_other' => 'Perawatan saluran akar',
+            'brace_type' => 'SL Metal', 'installed_on' => '2025-01-01', // isian ortho diabaikan untuk kasus non-ortho
+            'stage' => 'before', 'session_date' => now()->toDateString(),
+        ])->assertRedirect();
+
+        $case = OrthoCase::withoutGlobalScopes()->sole();
+        $this->assertSame(CaseKind::General, $case->kind);
+        $this->assertSame('Perawatan saluran akar', $case->treatment_type);
+        $this->assertNull($case->brace_type);
+        $this->assertNull($case->installed_on);
+        $this->assertSame(Stage::Before, PhotoSession::withoutGlobalScopes()->sole()->stage);
+    }
+
+    public function test_stage_must_match_case_kind_and_types_come_from_list(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        $patient = $this->in($workspace, fn () => Patient::factory()->create());
+        $general = $this->in($workspace, fn () => OrthoCase::factory()->general()->create(['patient_id' => $patient->id]));
+        $url = "/pasien/{$patient->id}/sesi";
+        $today = now()->toDateString();
+
+        $this->actingAs($dentist)->post($url, ['ortho_case_id' => $general->id, 'stage' => 'control', 'session_date' => $today])
+            ->assertSessionHasErrors('stage');
+        $this->actingAs($dentist)->post($url, ['ortho_case_id' => 'new', 'case_kind' => 'general', 'treatment_type' => 'Scaling', 'stage' => 'initial', 'session_date' => $today])
+            ->assertSessionHasErrors('stage');
+        $this->actingAs($dentist)->post($url, ['ortho_case_id' => 'new', 'case_kind' => 'ortho', 'brace_type' => 'Metal', 'stage' => 'initial', 'session_date' => $today])
+            ->assertSessionHasErrors('brace_type');
+        $this->actingAs($dentist)->post($url, ['ortho_case_id' => 'new', 'case_kind' => 'ortho', 'brace_type' => 'other', 'stage' => 'initial', 'session_date' => $today])
+            ->assertSessionHasErrors('brace_type_other');
+
+        $this->actingAs($dentist)->post($url, ['ortho_case_id' => 'new', 'case_kind' => 'ortho', 'brace_type' => 'other', 'brace_type_other' => 'Clear aligner', 'stage' => 'initial', 'session_date' => $today])
+            ->assertRedirect();
+        $this->assertSame('Clear aligner', OrthoCase::withoutGlobalScopes()->where('kind', 'ortho')->value('brace_type'));
+        $this->actingAs($dentist)->post($url, ['ortho_case_id' => $general->id, 'stage' => 'after', 'session_date' => $today])->assertRedirect();
     }
 
     public function test_camera_upload_stores_clean_jpeg_thumb_hash_and_updates_quota(): void
