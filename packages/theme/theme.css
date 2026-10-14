@@ -260,8 +260,14 @@ input[type="date"].input, input[type="time"].input, input[type="datetime-local"]
   min-width: 0;
   max-width: 100%;
   text-align: center;
+  /* Tengah vertikal: tinggi tetap + tinggi baris sama dengan ruang dalam (tinggi − border atas/bawah). */
+  height: var(--tap);
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: calc(var(--tap) - 2px);
 }
-.input::-webkit-date-and-time-value { text-align: center; margin: 0; min-height: 1.4em; }
+.input::-webkit-date-and-time-value { text-align: center; margin: 0; line-height: calc(var(--tap) - 2px); }
+.input::-webkit-datetime-edit { padding: 0; line-height: calc(var(--tap) - 2px); }
 /* Kotak teks multi-baris (mis. keterangan sesi): sama dengan .input, tinggi lebih besar, bisa ditarik vertikal. */
 textarea.input {
   display: block;
