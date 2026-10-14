@@ -7,7 +7,7 @@
         @include('partials.back', ['href' => route('gallery.index', $patient)])
         <p class="title">{{ $photo->slot_code }} · {{ $slot['label'] ?? '' }}</p>
         @if ($photo->isImage())
-            <button class="action" type="button" data-share-file data-stamp="{{ $photo->timestampText() }}" data-url="{{ $photo->url($photo->displayVariant()) }}" data-name="{{ $photo->shareFileName($patient, $photo->displayVariant()) }}" data-title="{{ $photo->slot_code }} · {{ $patient->name }}">Bagikan</button>
+            <button class="action" type="button" data-share-file data-stamp="{{ $photo->watermarkText($patient) }}" data-url="{{ $photo->url($photo->displayVariant()) }}" data-name="{{ $photo->shareFileName($patient, $photo->displayVariant()) }}" data-title="{{ $photo->slot_code }} · {{ $patient->name }}">Bagikan</button>
         @else
             <span></span>
         @endif

@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Models\AuditLog;
 use App\Models\OrthoCase;
+use App\Models\Patient;
 use App\Models\Photo;
 use App\Models\PhotoSession;
 use App\Models\Report;
@@ -33,17 +34,19 @@ class GenerateReport
     /**
      * @param  array<string, array{before: ?string, after: ?string}>  $selection  slot → id foto (sudah divalidasi)
      */
-    /** Cetak timestamp di foto PDF (report ini). */
+    /** Cetak watermark di foto PDF (report ini). */
     private bool $stamp = false;
+
+    private Patient $patient;
 
     public function __invoke(OrthoCase $case, PhotoSession $before, PhotoSession $after, array $selection, bool $anonymized, int $userId, bool $showTimestamp = false): Report
     {
-        // Report anonim menyembunyikan tanggal, jadi timestamp tidak dicetak.
+        // Report anonim menyembunyikan nama dan tanggal, jadi watermark tidak dicetak.
         $this->stamp = $showTimestamp && ! $anonymized;
         $photos = Photo::with('session')->whereIn('id', collect($selection)->flatten()->filter())->get()->keyBy('id');
         $slots = config('slots.slots');
         $case->loadMissing('patient.externalIds', 'dentist');
-        $patient = $case->patient;
+        $patient = $this->patient = $case->patient;
         $workspace = Workspace::find($case->workspace_id);
         // Semua data sudah dimuat; olah foto + render PDF (beberapa detik) tanpa menahan koneksi MySQL yang dibatasi hosting.
         ReleaseDatabase::now();
@@ -118,7 +121,7 @@ class GenerateReport
         $jpeg = Thumbnail::make($bytes, $orientation, self::IMAGE_SIZE, 85)
             ?? throw ValidationException::withMessages(['report' => "Foto {$photo->slot_code} tidak bisa dibaca."]);
         if ($this->stamp) {
-            $jpeg = PhotoStamp::apply($jpeg, $photo->timestampText());
+            $jpeg = PhotoStamp::apply($jpeg, $photo->watermarkText($this->patient));
         }
 
         [$w, $h] = getimagesizefromstring($jpeg);

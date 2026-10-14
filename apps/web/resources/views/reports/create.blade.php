@@ -85,7 +85,7 @@
                 <label class="check">
                     <input type="hidden" name="show_timestamp" value="0">
                     <input type="checkbox" name="show_timestamp" value="1" checked>
-                    <span>Cetak timestamp di foto (tanggal & jam foto diambil). Tidak dicetak pada report anonim.</span>
+                    <span>Cetak watermark di foto (nama depan pasien - sesi - tanggal). Tidak dicetak pada report anonim.</span>
                 </label>
 
                 <label class="check">

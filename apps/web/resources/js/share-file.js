@@ -1,6 +1,6 @@
 // Tombol Bagikan foto: [data-share-file] dengan data-url (URL bertanda tangan), data-name (nama file), data-title,
-// dan data-stamp (teks timestamp). Bila timestamp sedang ditampilkan (tombol 🕒), file yang dibagikan ikut memuat
-// timestamp tercetak di pojok kanan bawah, sama seperti foto di PDF report. Dicetak di perangkat, bukan di server.
+// dan data-stamp (watermark: nama depan pasien - sesi - tanggal). Bila timestamp sedang ditampilkan (tombol 🕒), file yang
+// dibagikan ikut memuat watermark di pojok kanan bawah, sama seperti foto di PDF report. Dicetak di perangkat, bukan di server.
 // iOS/Android: menu Bagikan (WhatsApp, Simpan ke Foto/File, AirDrop). Browser tanpa dukungan: unduh langsung.
 const cache = new Map();
 
@@ -46,13 +46,20 @@ async function drawStamp(file, text) {
     ctx.drawImage(img, 0, 0, w, h);
 
     // Ukuran dan posisi sama dengan App\Support\PhotoStamp (PDF): ±2,4% lebar foto, pojok kanan bawah.
-    const size = Math.max(14, Math.round(w * 0.024));
+    let size = Math.max(14, Math.round(w * 0.024));
+    const font = (px) => `bold ${px}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
+    ctx.font = font(size);
+    // Teks panjang: perkecil huruf agar teks muat dalam ±85% lebar foto (sisa untuk latar dan jarak tepi).
+    const full = ctx.measureText(text).width;
+    if (full > w * 0.85) {
+      size = Math.max(8, Math.floor((size * w * 0.85) / full));
+      ctx.font = font(size);
+    }
     const pad = Math.round(size * 0.5);
-    ctx.font = `bold ${size}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
     ctx.textBaseline = 'alphabetic';
     const m = ctx.measureText(text);
     const textHeight = Math.ceil(m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || size;
-    const x = w - m.width - 3 * pad;
+    const x = Math.max(2 * pad, w - m.width - 3 * pad);
     const baseline = h - 3 * pad;
     ctx.fillStyle = 'rgb(0 0 0 / 0.6)';
     ctx.fillRect(x - pad, baseline - textHeight - pad, m.width + 2 * pad, textHeight + 2 * pad);

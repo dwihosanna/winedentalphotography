@@ -86,6 +86,12 @@ class Photo extends Model
         return $this->capturedAt()->format('d-m-Y H:i');
     }
 
+    /** Watermark saat diekspor (Bagikan foto, PDF report): "Nama depan - Sesi - dd-mm-yyyy" (tanggal sesi). */
+    public function watermarkText(Patient $patient): string
+    {
+        return $patient->firstName().' - '.$this->session->stageLabel().' - '.$this->session->session_date->format('d-m-Y');
+    }
+
     /** Nama file saat dibagikan/diunduh: Nama Pasien-SLOT-dd-mm-yyyy.jpg (tanggal sesi). */
     public function shareFileName(Patient $patient, string $variant): string
     {

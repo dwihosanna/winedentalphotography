@@ -140,6 +140,7 @@ class GalleryTest extends TestCase
             ->assertSee(route('photos.image', $photo), false)
             ->assertSee('data-share-file', false)
             ->assertSee('data-name="'.e($fileName).'"', false)
+            ->assertSee('data-stamp="'.e("{$patient->firstName()} - Awal - 10-01-2026").'"', false)
             ->assertDontSee('target="_blank"', false);
 
         $this->actingAs($dentist)->get("/foto/{$photo->id}/tampil")->assertOk()
@@ -147,7 +148,19 @@ class GalleryTest extends TestCase
             ->assertSee(route('photos.show', $photo), false)
             ->assertSee('Bagikan')
             ->assertViewHas('fileName', $fileName)
+            ->assertSee('data-stamp="'.e("{$patient->firstName()} - Awal - 10-01-2026").'"', false)
             ->assertViewHas('variant', 'original');
+    }
+
+    public function test_export_watermark_is_patient_session_and_date(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        [$patient, , $photos] = $this->patientWithPhotos($workspace, $dentist);
+
+        $patient->name = 'Ayu Kusuma Setiawati';
+        $this->assertSame('Ayu', $patient->firstName());
+        $texts = $this->in($workspace, fn () => array_map(fn ($key) => $photos[$key]->watermarkText($patient), ['initial', 'control', 'debond']));
+        $this->assertSame(['Ayu - Awal - 10-01-2026', 'Ayu - Kontrol ke-1 - 10-03-2026', 'Ayu - Lepas - 10-06-2026'], $texts);
     }
 
     public function test_gallery_pages_are_limited_to_own_workspace(): void

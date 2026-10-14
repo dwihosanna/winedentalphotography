@@ -225,7 +225,7 @@ class ReportTest extends TestCase
         ]));
         $url = "/pasien/{$patient->id}/report";
 
-        $this->actingAs($dentist)->get("{$url}/baru")->assertSee('Cetak timestamp di foto');
+        $this->actingAs($dentist)->get("{$url}/baru")->assertSee('Cetak watermark di foto');
         $this->actingAs($dentist)->post($url, $this->form($case, $before, $after, ['show_timestamp' => 1]))->assertRedirect();
         $this->actingAs($dentist)->post($url, $this->form($case, $before, $after, ['show_timestamp' => 0]))->assertRedirect();
         $this->actingAs($dentist)->post($url, $this->form($case, $before, $after, ['show_timestamp' => 1, 'anonymized' => 1]))->assertRedirect();

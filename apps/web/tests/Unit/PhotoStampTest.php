@@ -27,4 +27,17 @@ class PhotoStampTest extends TestCase
         $this->assertGreaterThan(50, $changed);
         $this->assertEqualsWithDelta(imagecolorat($before, 20, 20) & 0xFF, imagecolorat($after, 20, 20) & 0xFF, 8);
     }
+
+    public function test_long_watermark_shrinks_to_stay_inside_photo(): void
+    {
+        $jpeg = TestImages::jpeg(w: 400, h: 300);
+        $out = PhotoStamp::apply($jpeg, 'Raden Ayu Kusumawardhani Setiawati Putri - Kontrol ke-12 - 14-10-2026');
+
+        $before = imagecreatefromstring($jpeg);
+        $after = imagecreatefromstring($out);
+        // Kolom paling kiri tidak tersentuh: teks tidak meluber keluar foto.
+        for ($y = 0; $y < 300; $y += 3) {
+            $this->assertEqualsWithDelta(imagecolorat($before, 1, $y) & 0xFF, imagecolorat($after, 1, $y) & 0xFF, 10);
+        }
+    }
 }

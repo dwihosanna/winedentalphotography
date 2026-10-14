@@ -5,7 +5,7 @@ namespace App\Support;
 use GdImage;
 
 /**
- * Cetak timestamp di pojok kanan bawah foto (untuk PDF report; foto di aplikasi memakai label HTML).
+ * Cetak watermark (nama depan pasien - sesi - tanggal) di pojok kanan bawah foto PDF report; foto di aplikasi memakai label HTML.
  * Dipakai pada foto yang sudah diperkecil (±1100 px), jadi tambahannya hanya beberapa milidetik per foto.
  */
 final class PhotoStamp
@@ -20,11 +20,16 @@ final class PhotoStamp
         $font = config('dental.timestamp_font');
         $width = imagesx($image);
         $size = max(10, (int) round($width * 0.024));
-        $pad = (int) round($size * 0.5);
         $box = imagettfbbox($size, 0, $font, $text);
+        // Teks panjang: perkecil huruf agar teks muat dalam ±85% lebar foto (sisa untuk latar dan jarak tepi).
+        if ($width * 0.85 < $box[2] - $box[0]) {
+            $size = max(6, (int) floor($size * $width * 0.85 / ($box[2] - $box[0])));
+            $box = imagettfbbox($size, 0, $font, $text);
+        }
+        $pad = max(2, (int) round($size * 0.5));
         $textWidth = $box[2] - $box[0];
         $textHeight = $box[1] - $box[7];
-        $x = $width - $textWidth - 3 * $pad;
+        $x = max(2 * $pad, $width - $textWidth - 3 * $pad);
         $baseline = imagesy($image) - 3 * $pad;
 
         // Latar gelap semi-transparan agar terbaca di gigi putih maupun gusi.

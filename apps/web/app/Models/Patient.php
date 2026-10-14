@@ -55,6 +55,12 @@ class Patient extends Model
         return new HtmlString(trim(e(implode(' ', $parts)).' <b>'.e($last).'</b>'));
     }
 
+    /** Nama depan = kata pertama (sama dengan inisial avatar); dipakai di watermark foto ekspor. */
+    public function firstName(): string
+    {
+        return preg_split('/\s+/u', trim($this->name))[0] ?? '';
+    }
+
     public function initials(): string
     {
         $words = explode(' ', $this->name);
