@@ -216,6 +216,40 @@ class ReportTest extends TestCase
         $this->assertSame('Report-Anonim-14-10-2026.pdf', $report->pdfFileName(new Patient(['name' => 'Ayu Setiawati'])));
     }
 
+    public function test_timestamp_option_is_stored_and_never_printed_on_anonymized_reports(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        [$patient, $case, $before, $after] = $this->caseWithTwoSessions($workspace, $dentist);
+        $this->in($workspace, fn () => Consent::create([
+            'patient_id' => $patient->id, 'type' => ConsentType::Publication, 'given_on' => '2025-01-10', 'recorded_by' => $dentist->id,
+        ]));
+        $url = "/pasien/{$patient->id}/report";
+
+        $this->actingAs($dentist)->get("{$url}/baru")->assertSee('Cetak timestamp di foto');
+        $this->actingAs($dentist)->post($url, $this->form($case, $before, $after, ['show_timestamp' => 1]))->assertRedirect();
+        $this->actingAs($dentist)->post($url, $this->form($case, $before, $after, ['show_timestamp' => 0]))->assertRedirect();
+        $this->actingAs($dentist)->post($url, $this->form($case, $before, $after, ['show_timestamp' => 1, 'anonymized' => 1]))->assertRedirect();
+
+        $reports = Report::withoutGlobalScopes()->get();
+        $this->assertCount(3, $reports);
+        $this->assertSame(1, $reports->where('show_timestamp', true)->count());
+        $this->assertFalse($reports->firstWhere('anonymized', true)->show_timestamp);
+
+        $stamped = Report::withoutGlobalScopes()->where('show_timestamp', true)->sole();
+        $this->actingAs($dentist)->get("/report/{$stamped->id}")->assertSee('Dicetak di foto');
+    }
+
+    public function test_presentation_slides_carry_timestamp(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        [$patient, $case, $before, $after] = $this->caseWithTwoSessions($workspace, $dentist);
+        $query = http_build_query($this->form($case, $before, $after));
+
+        $slides = $this->actingAs($dentist)->get("/pasien/{$patient->id}/report/presentasi?{$query}")->assertOk()
+            ->assertSee('data-timestamp-toggle', false)->viewData('slides');
+        $this->assertMatchesRegularExpression('/^\d{2}-\d{2}-\d{4} \d{2}:\d{2}$/', $slides[0]['before']['time']);
+    }
+
     public function test_selection_must_match_chosen_sessions(): void
     {
         [$dentist, $workspace] = $this->dentistWithWorkspace();

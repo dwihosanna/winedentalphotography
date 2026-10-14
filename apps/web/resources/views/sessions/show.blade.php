@@ -33,6 +33,7 @@
         <div class="row-actions">
             <a class="btn btn-primary" href="{{ route('sessions.camera', $session) }}">Buka kamera</a>
             <a class="btn btn-secondary" href="{{ route('sessions.upload', $session) }}">Unggah banyak foto</a>
+            @include('partials.timestamp-toggle')
         </div>
 
         <ul class="slot-grid">
@@ -40,7 +41,7 @@
                 @php($photo = $photos->get($slot->slot_code))
                 <li class="slot {{ $photo ? 'filled' : '' }} {{ $slot->required ? 'required' : '' }}">
                     @if ($photo && $photo->thumb_path)
-                        <a href="{{ route('photos.show', $photo) }}"><img src="{{ $photo->url('thumb') }}" alt="{{ $slot->label }}" loading="lazy"></a>
+                        <a class="ts-host" href="{{ route('photos.show', $photo) }}"><img src="{{ $photo->url('thumb') }}" alt="{{ $slot->label }}" loading="lazy">@include('partials.timestamp')</a>
                     @elseif ($photo)
                         <a class="ph" href="{{ route('photos.viewer', $photo) }}">PDF</a>
                     @else

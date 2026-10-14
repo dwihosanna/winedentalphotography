@@ -23,6 +23,9 @@ function show(i) {
     const loading = $('[data-loading]', root);
     $('[data-empty]', root).hidden = !!data;
     $('[data-caption]', root).textContent = data ? `· ${data.stage} · ${data.date}` : '';
+    const time = $('[data-time]', root);
+    time.hidden = !data?.time;
+    time.textContent = data?.time ?? '';
     img.hidden = !data;
     loading.hidden = true;
     if (data) {

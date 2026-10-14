@@ -35,13 +35,14 @@
             @endif
             <noscript><button class="btn btn-primary" type="submit">Tampilkan</button></noscript>
         </form>
+        <div class="row-actions">@include('partials.timestamp-toggle')</div>
 
         @if ($b)
             <div class="compare">
                 @foreach (['Sebelum' => $a, 'Sesudah' => $b] as $label => $photo)
                     <figure>
                         @if ($photo->isImage())
-                            <a href="{{ route('photos.show', $photo) }}"><img src="{{ $photo->url($photo->displayVariant()) }}" alt="{{ $label }}: {{ $slot['label'] }}, {{ $photo->session->session_date->format('d-m-Y') }}"></a>
+                            <a class="ts-host ts-lg" href="{{ route('photos.show', $photo) }}"><img src="{{ $photo->url($photo->displayVariant()) }}" alt="{{ $label }}: {{ $slot['label'] }}, {{ $photo->session->session_date->format('d-m-Y') }}">@include('partials.timestamp')</a>
                         @else
                             <a class="ph" href="{{ route('photos.viewer', $photo) }}">PDF</a>
                         @endif

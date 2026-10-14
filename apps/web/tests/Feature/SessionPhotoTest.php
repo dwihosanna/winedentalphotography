@@ -277,6 +277,28 @@ class SessionPhotoTest extends TestCase
         $this->get($photo->url('original'))->assertRedirect('/login');
     }
 
+    public function test_photos_show_capture_timestamp_in_display_timezone(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        $session = $this->sessionIn($workspace, Stage::Control, ['control_number' => 1, 'session_date' => '2024-05-01']);
+
+        $this->travelTo(now()->setDateTime(2026, 10, 14, 4, 5)); // 04:05 UTC = 11:05 WIB
+        $camera = $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", ['file' => $this->jpeg(), 'slot_code' => 'IO-01', 'source' => 'camera'])->json('id');
+        $upload = $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", [
+            'file' => $this->jpeg(['date' => '2024:05:01 09:30:00']), 'slot_code' => 'IO-02', 'source' => 'upload',
+        ])->json('id');
+
+        // Foto kamera: UTC diubah ke WIB. Foto unggahan: waktu EXIF (waktu lokal kamera) apa adanya.
+        $this->assertSame('14-10-2026 11:05', Photo::withoutGlobalScopes()->find($camera)->timestampText());
+        $this->assertSame('01-05-2024 09:30', Photo::withoutGlobalScopes()->find($upload)->timestampText());
+
+        $this->actingAs($dentist)->get("/sesi/{$session->id}")->assertOk()
+            ->assertSee('<span class="ts">14-10-2026 11:05</span>', false)
+            ->assertSee('data-timestamp-toggle', false)
+            ->assertSee("localStorage.getItem(key) !== 'off'", false);
+        $this->actingAs($dentist)->get("/foto/{$camera}")->assertOk()->assertSee('14 Okt 2026 11:05');
+    }
+
     public function test_session_camera_and_upload_pages_render(): void
     {
         [$dentist, $workspace] = $this->dentistWithWorkspace();

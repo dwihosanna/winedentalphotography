@@ -9,6 +9,7 @@ use App\Models\PhotoSession;
 use App\Models\Report;
 use App\Models\Workspace;
 use App\Support\JpegMetadata;
+use App\Support\PhotoStamp;
 use App\Support\ReleaseDatabase;
 use App\Support\Thumbnail;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -32,8 +33,13 @@ class GenerateReport
     /**
      * @param  array<string, array{before: ?string, after: ?string}>  $selection  slot → id foto (sudah divalidasi)
      */
-    public function __invoke(OrthoCase $case, PhotoSession $before, PhotoSession $after, array $selection, bool $anonymized, int $userId): Report
+    /** Cetak timestamp di foto PDF (report ini). */
+    private bool $stamp = false;
+
+    public function __invoke(OrthoCase $case, PhotoSession $before, PhotoSession $after, array $selection, bool $anonymized, int $userId, bool $showTimestamp = false): Report
     {
+        // Report anonim menyembunyikan tanggal, jadi timestamp tidak dicetak.
+        $this->stamp = $showTimestamp && ! $anonymized;
         $photos = Photo::with('session')->whereIn('id', collect($selection)->flatten()->filter())->get()->keyBy('id');
         $slots = config('slots.slots');
         $case->loadMissing('patient.externalIds', 'dentist');
@@ -58,6 +64,7 @@ class GenerateReport
             'after_session_id' => $after->id,
             'selected_photos' => $selection,
             'anonymized' => $anonymized,
+            'show_timestamp' => $this->stamp,
             'created_by' => $userId,
         ]);
         $report->id = (string) Str::uuid();
@@ -87,7 +94,7 @@ class GenerateReport
 
                 $report->forceFill(['disk' => $disk, 'pdf_path' => $path, 'pdf_bytes' => strlen($pdf)])->save();
                 $workspace->addUsedBytes(strlen($pdf));
-                AuditLog::record('create', $report, ['anonymized' => $report->anonymized, 'slots' => array_keys($report->selected_photos)]);
+                AuditLog::record('create', $report, ['anonymized' => $report->anonymized, 'timestamp' => $report->show_timestamp, 'slots' => array_keys($report->selected_photos)]);
 
                 return $report;
             });
@@ -110,6 +117,9 @@ class GenerateReport
         $orientation = ! $edited && $photo->mime === 'image/jpeg' ? JpegMetadata::orientationOf($bytes) : 1;
         $jpeg = Thumbnail::make($bytes, $orientation, self::IMAGE_SIZE, 85)
             ?? throw ValidationException::withMessages(['report' => "Foto {$photo->slot_code} tidak bisa dibaca."]);
+        if ($this->stamp) {
+            $jpeg = PhotoStamp::apply($jpeg, $photo->timestampText());
+        }
 
         [$w, $h] = getimagesizefromstring($jpeg);
         // Kotak foto di PDF 88 × 74 mm (3 baris per halaman A4); ukuran eksplisit karena dompdf tidak andal dengan max-height.

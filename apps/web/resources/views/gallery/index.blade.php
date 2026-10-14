@@ -51,6 +51,7 @@
                 </div>
             </form>
         </details>
+        <div class="row-actions">@include('partials.timestamp-toggle')</div>
     </div>
 
     @forelse ($groups as $code => $photos)
@@ -70,6 +71,7 @@
                             @else
                                 <span class="ph">{{ $photo->isImage() ? $code : 'PDF' }}</span>
                             @endif
+                            @include('partials.timestamp')
                             <span class="cap">{{ $photo->session->session_date->format('d-m-y') }} · {{ $photo->session->stageLabel() }}</span>
                         </a>
                     </li>

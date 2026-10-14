@@ -60,14 +60,14 @@ class ReportController extends Controller
     {
         $this->authorize('report', $patient);
 
-        [$case, $before, $after, $selection] = $this->resolveSelection($request, $patient, ['anonymized' => ['nullable', 'boolean']]);
+        [$case, $before, $after, $selection] = $this->resolveSelection($request, $patient, ['anonymized' => ['nullable', 'boolean'], 'show_timestamp' => ['nullable', 'boolean']]);
 
         $anonymized = $request->boolean('anonymized');
         if ($anonymized && ! $this->hasPublicationConsent($patient)) {
             throw ValidationException::withMessages(['anonymized' => 'Report anonim untuk publikasi butuh consent publikasi pasien yang masih berlaku.']);
         }
 
-        $report = $generate($case, $before, $after, $selection, $anonymized, $request->user()->id);
+        $report = $generate($case, $before, $after, $selection, $anonymized, $request->user()->id, $request->boolean('show_timestamp'));
 
         return redirect()->route('reports.show', $report)->with('status', 'Report dibuat.');
     }
@@ -87,6 +87,7 @@ class ReportController extends Controller
         $minutes = config('dental.presentation_url_minutes');
         $side = fn (?string $id, PhotoSession $session) => ($photo = $photos->get($id ?? '')) === null ? null : [
             'url' => $photo->url($photo->displayVariant(), $minutes),
+            'time' => $photo->timestampText(),
             'date' => $session->session_date->format('d-m-Y'),
             'stage' => $session->stageLabel(),
         ];

@@ -21,6 +21,7 @@
             <div><dt>Pasien</dt><dd>{{ $patient->name }}{{ $report->anonymized ? ' (PDF anonim)' : '' }}</dd></div>
             <div><dt>Sebelum</dt><dd>{{ $report->beforeSession->stageLabel() }} · {{ $report->beforeSession->session_date->format('d-m-Y') }}</dd></div>
             <div><dt>Sesudah</dt><dd>{{ $report->afterSession->stageLabel() }} · {{ $report->afterSession->session_date->format('d-m-Y') }}</dd></div>
+            <div><dt>Timestamp</dt><dd>{{ $report->show_timestamp ? 'Dicetak di foto' : 'Tidak dicetak' }}</dd></div>
             <div><dt>Slot</dt><dd>{{ implode(', ', array_keys($report->selected_photos)) }}</dd></div>
             <div><dt>Dibuat</dt><dd>{{ $report->creator->name }} · {{ $report->created_at->translatedFormat('d M Y H:i') }}</dd></div>
             <div><dt>Ukuran</dt><dd>{{ number_format($report->pdf_bytes / 1048576, 1, ',', '.') }} MB</dd></div>

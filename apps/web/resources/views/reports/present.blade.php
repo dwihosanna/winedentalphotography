@@ -11,6 +11,7 @@
     <meta name="robots" content="noindex">
     <title>Presentasi · {{ $patient->name }}</title>
     {{-- Latar gelap netral (bukan warna merek) agar warna gigi/gusi dinilai apa adanya, sama seperti layar kamera. --}}
+    @include('partials.timestamp-pref')
     @vite(['resources/css/present.css', 'resources/js/present.js'])
 </head>
 <body data-no-update-banner>
@@ -20,6 +21,7 @@
             <b>{{ $patient->name }}</b>
             <span>{{ $title }} · {{ $case->kind->label() }} · {{ $case->label() }}</span>
         </div>
+        <button class="icon ts-toggle" type="button" data-timestamp-toggle aria-pressed="true" aria-label="Tampilkan/sembunyikan timestamp" title="Timestamp">🕒</button>
         <span class="count" data-count></span>
         <button class="icon" type="button" data-fullscreen aria-label="Layar penuh" hidden>⛶</button>
     </header>
@@ -33,6 +35,7 @@
                         <img alt="" data-img>
                         <p class="empty" data-empty hidden>Tidak ada foto</p>
                         <p class="loading" data-loading hidden>Memuat…</p>
+                        <span class="ts" data-time hidden></span>
                     </div>
                     <figcaption><b>{{ $label }}</b> <span data-caption></span></figcaption>
                 </figure>

@@ -16,7 +16,7 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); 
 body { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); height: 100dvh; overflow: hidden; }
 
 .bar {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 12px; align-items: center;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; gap: 12px; align-items: center;
   padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 12px) 8px calc(env(safe-area-inset-left, 0px) + 12px);
   border-bottom: 1px solid var(--line);
 }
@@ -64,3 +64,11 @@ figcaption b { color: var(--ink); }
   color: var(--muted); font: inherit; font-size: 13px; cursor: pointer;
 }
 .chips button[aria-current="true"] { background: var(--ink); color: #000; border-color: var(--ink); font-weight: 600; }
+
+/* Timestamp di pojok foto; disembunyikan lewat tombol 🕒 (preferensi per perangkat, sama dengan aplikasi). */
+.frame .ts {
+  position: absolute; right: 8px; bottom: 8px; padding: 2px 8px; border-radius: 6px;
+  background: rgb(0 0 0 / .6); color: #fff; font-size: 13px; font-variant-numeric: tabular-nums; pointer-events: none;
+}
+[data-timestamps="off"] .frame .ts { display: none; }
+.ts-toggle[aria-pressed="false"] { opacity: .5; }

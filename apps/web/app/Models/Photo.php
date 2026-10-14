@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToWorkspace;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -68,6 +69,20 @@ class Photo extends Model
         return URL::temporarySignedRoute('photos.file', now()->addMinutes($minutes ?? config('dental.signed_url_minutes')), [
             'photo' => $this->id, 'variant' => $variant,
         ]);
+    }
+
+    /**
+     * Waktu foto diambil untuk timestamp: tanggal EXIF (foto unggahan, sudah waktu lokal kamera, ditampilkan apa adanya)
+     * atau waktu tersimpan (foto kamera aplikasi, UTC, diubah ke zona waktu tampilan).
+     */
+    public function capturedAt(): CarbonInterface
+    {
+        return $this->exif_taken_at ?? $this->taken_at->copy()->setTimezone(config('dental.display_timezone'));
+    }
+
+    public function timestampText(): string
+    {
+        return $this->capturedAt()->format('d-m-Y H:i');
     }
 
     /** Versi yang ditampilkan di galeri, perbandingan, dan report: hasil edit bila ada (FR-13). */

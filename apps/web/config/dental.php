@@ -2,7 +2,13 @@
 
 return [
     // Versi aplikasi di footer. Naikkan setiap rilis ke produksi (1.01, 1.02, ...).
-    'version' => '1.09',
+    'version' => '1.10',
+
+    // Zona waktu tampilan timestamp foto (aplikasi menyimpan waktu dalam UTC).
+    'display_timezone' => env('DISPLAY_TIMEZONE', 'Asia/Jakarta'),
+
+    // Font timestamp yang dicetak di foto PDF report (DejaVu ikut terpasang bersama dompdf).
+    'timestamp_font' => base_path('vendor/dompdf/dompdf/lib/fonts/DejaVuSans-Bold.ttf'),
 
     // Versi syarat layanan yang berlaku. Menaikkan versi meminta semua pengguna menyetujui ulang (FR-27).
     'terms_version' => env('TERMS_VERSION', '2026-10-13'),

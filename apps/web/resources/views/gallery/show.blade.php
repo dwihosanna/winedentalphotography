@@ -14,7 +14,7 @@
             <p class="status" role="status">{{ session('status') }}</p>
         @endif
         @if ($photo->isImage())
-            <a href="{{ $photo->url($photo->displayVariant()) }}" target="_blank" rel="noopener"><img class="photo-full" src="{{ $photo->url($photo->displayVariant()) }}" alt="{{ $slot['label'] ?? $photo->slot_code }}"></a>
+            <a class="ts-host ts-lg" href="{{ $photo->url($photo->displayVariant()) }}" target="_blank" rel="noopener"><img class="photo-full" src="{{ $photo->url($photo->displayVariant()) }}" alt="{{ $slot['label'] ?? $photo->slot_code }}">@include('partials.timestamp')</a>
         @else
             <a class="btn btn-secondary" href="{{ route('photos.viewer', $photo) }}">Buka PDF</a>
         @endif
@@ -24,6 +24,7 @@
                 <a class="btn btn-primary" href="{{ route('photos.edit', $photo) }}">Edit</a>
             @endif
             <a class="btn btn-secondary" href="{{ route('sessions.show', $session) }}">Buka sesi</a>
+            @include('partials.timestamp-toggle')
             <a class="btn btn-ghost" href="{{ route('gallery.compare', ['patient' => $patient, 'slot' => $photo->slot_code, 'b' => $session->id]) }}">Bandingkan</a>
         </div>
 
@@ -34,7 +35,7 @@
             <div><dt>Sesi</dt><dd>{{ $session->stageLabel() }} · {{ $session->session_date->translatedFormat('d F Y') }}</dd></div>
             <div><dt>Kategori</dt><dd>{{ $photo->slot_code }} · {{ $slot['label'] ?? $photo->category }}</dd></div>
             <div><dt>Sumber</dt><dd>{{ $photo->source === 'camera' ? 'Kamera aplikasi' : 'Unggahan' }}{{ $photo->original_name ? ' · '.$photo->original_name : '' }}</dd></div>
-            <div><dt>Diambil oleh</dt><dd>{{ $photo->takenBy?->name ?? '—' }} · {{ $photo->taken_at->translatedFormat('d M Y H:i') }}</dd></div>
+            <div><dt>Diambil oleh</dt><dd>{{ $photo->takenBy?->name ?? '—' }} · {{ $photo->taken_at->copy()->setTimezone(config('dental.display_timezone'))->translatedFormat('d M Y H:i') }}</dd></div>
             @if ($photo->exif_taken_at)
                 <div><dt>Tanggal di file</dt><dd @class(['warn-text' => $photo->exifDateMismatch()])>{{ $photo->exif_taken_at->translatedFormat('d M Y H:i') }}</dd></div>
             @endif

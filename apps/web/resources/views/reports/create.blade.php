@@ -83,6 +83,12 @@
                 </ul>
 
                 <label class="check">
+                    <input type="hidden" name="show_timestamp" value="0">
+                    <input type="checkbox" name="show_timestamp" value="1" checked>
+                    <span>Cetak timestamp di foto (tanggal & jam foto diambil). Tidak dicetak pada report anonim.</span>
+                </label>
+
+                <label class="check">
                     <input type="hidden" name="anonymized" value="0">
                     <input type="checkbox" name="anonymized" value="1" @disabled(! $canAnonymize) data-locked="{{ $canAnonymize ? '0' : '1' }}">
                     <span>

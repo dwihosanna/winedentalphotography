@@ -134,3 +134,15 @@ details.card[open] > summary { margin-bottom: var(--space-3); }
 .pdf-pages canvas { width: 100%; height: auto; display: block; background: #fff; border-radius: var(--radius-sm); box-shadow: var(--shadow); }
 .pdf-status { text-align: center; padding: var(--space-6) 0; }
 .app-bar .action:disabled { opacity: .5; }
+
+/* Timestamp foto: label waktu diambil di pojok foto; bisa disembunyikan per perangkat (tombol 🕒 Timestamp). */
+.ts-host { position: relative; display: block; }
+.ts {
+  position: absolute; right: 4px; bottom: 4px; padding: 1px 6px; border-radius: 4px;
+  background: rgb(0 0 0 / .6); color: #fff; font-size: var(--fs-xs); line-height: 1.5;
+  font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none;
+}
+.ts-lg .ts { right: 8px; bottom: 8px; padding: 2px 8px; font-size: var(--fs-sm); }
+.gallery-grid .ts { top: 4px; bottom: auto; }
+[data-timestamps="off"] .ts { display: none; }
+.ts-toggle[aria-pressed="false"] { opacity: .6; text-decoration: line-through; }

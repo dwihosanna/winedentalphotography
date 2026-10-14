@@ -15,6 +15,7 @@
     <meta name="apple-mobile-web-app-title" content="Dental Photo">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>@yield('title') – {{ config('app.name') }}</title>
+    @include('partials.timestamp-pref')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
 </head>
