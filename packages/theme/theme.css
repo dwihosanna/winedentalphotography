@@ -251,6 +251,19 @@ img { max-width: 100%; display: block; }
   font: inherit;
   font-size: var(--fs-md); /* ≥ 16px agar Safari iOS tidak zoom saat fokus */
 }
+/* Safari iOS: input tanggal punya lebar intrinsik sendiri (mengabaikan width: 100%) dan nilainya rata tengah,
+   sehingga meluber keluar form. Tampilan bawaan dimatikan dan isi grid/fieldset boleh menyusut. */
+input[type="date"].input, input[type="time"].input, input[type="datetime-local"].input {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  text-align: left;
+}
+.input::-webkit-date-and-time-value { text-align: left; margin: 0; min-height: 1.4em; }
+.field > * { min-width: 0; }
+fieldset { min-width: 0; }
 .input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent); }
 .field .hint { font-size: var(--fs-xs); color: var(--muted); }
 .field .error { font-size: var(--fs-xs); color: var(--danger); }
