@@ -124,3 +124,6 @@ details.card[open] > summary { margin-bottom: var(--space-3); }
 /* Footer versi aplikasi. */
 .app-footer { padding: var(--space-4) var(--space-4) calc(env(safe-area-inset-bottom, 0px) + var(--space-4)); text-align: center; font-size: var(--fs-xs); color: var(--muted); }
 .has-tab-bar .app-footer { padding-bottom: var(--space-2); }
+
+/* Keterangan sesi bisa multi-baris (textarea): baris baru tetap tampil. */
+.archive-row .note, .session-notes { white-space: pre-line; }

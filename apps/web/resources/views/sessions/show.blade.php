@@ -23,7 +23,10 @@
                 @else
                     <span class="badge badge-draft">Draft · {{ count($missing) }} slot wajib kosong</span>
                 @endif
-                <p class="muted">{{ $session->session_date->translatedFormat('d F Y') }}{{ $session->notes ? ' · '.$session->notes : '' }}</p>
+                <p class="muted">{{ $session->session_date->translatedFormat('d F Y') }}</p>
+                @if ($session->notes)
+                    <p class="muted session-notes">{{ $session->notes }}</p>
+                @endif
             </div>
         </div>
 
@@ -77,7 +80,7 @@
                 </div>
                 <div class="field">
                     <label for="notes">Keterangan</label>
-                    <input id="notes" class="input" name="notes" value="{{ $session->notes }}">
+                    <textarea id="notes" class="input" name="notes" rows="3" maxlength="1000">{{ old('notes', $session->notes) }}</textarea>
                 </div>
                 <button class="btn btn-primary" type="submit">Simpan</button>
             </form>

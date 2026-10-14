@@ -106,7 +106,7 @@
             </div>
             <div class="field">
                 <label for="notes">Keterangan (opsional)</label>
-                <input id="notes" class="input" name="notes" value="{{ old('notes') }}" placeholder="mis. ganti kawat 0.016 NiTi / tambalan gigi 11">
+                <textarea id="notes" class="input" name="notes" rows="3" maxlength="1000" placeholder="mis. ganti kawat 0.016 NiTi / tambalan gigi 11">{{ old('notes') }}</textarea>
             </div>
             <button class="btn btn-primary btn-block" type="submit">Buat sesi</button>
         @endif
