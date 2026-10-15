@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\Stage;
 use App\Models\Photo;
 use App\Models\PhotoSession;
+use App\Models\Report;
 use App\Models\SlotTemplate;
 use Database\Seeders\SlotTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,10 +44,12 @@ class SlotRulesTest extends TestCase
         }
     }
 
-    public function test_control_sessions_make_anterior_closeups_optional(): void
+    public function test_control_sessions_require_only_frontal_and_lateral_intraoral(): void
     {
-        $this->assertSame(['IO-01', 'IO-02', 'IO-03', 'IO-04', 'IO-05'], $this->required(Stage::Control));
-        $this->assertSame(2, SlotTemplate::where('stage', Stage::Control)->whereIn('slot_code', ['IO-06', 'IO-07'])->where('required', false)->count());
+        $this->assertSame(['IO-01', 'IO-02', 'IO-03'], $this->required(Stage::Control));
+        $this->assertSame(4, SlotTemplate::where('stage', Stage::Control)->whereIn('slot_code', ['IO-04', 'IO-05', 'IO-06', 'IO-07'])->where('required', false)->count());
+        $this->assertSame('Intraoral kanan', SlotTemplate::where('slot_code', 'IO-01')->value('label'));
+        $this->assertSame('Intraoral kiri', SlotTemplate::where('slot_code', 'IO-03')->value('label'));
     }
 
     public function test_xray_is_optional_in_every_stage(): void
@@ -67,11 +70,11 @@ class SlotRulesTest extends TestCase
         $this->inWorkspace($workspace);
         $session = PhotoSession::factory()->create(['stage' => Stage::Control, 'control_number' => 1]);
 
-        foreach (array_diff(self::IO, ['IO-06', 'IO-07']) as $code) {
+        foreach (['IO-01', 'IO-02', 'IO-03'] as $code) {
             Photo::factory()->create(['photo_session_id' => $session->id, 'slot_code' => $code]);
         }
         $session->refreshStatus();
-        $this->assertSame('complete', $session->status); // IO-06/IO-07 opsional saat kontrol
+        $this->assertSame('complete', $session->status); // IO-04 s.d. IO-07 opsional saat kontrol
 
         // Retake: foto lama ditandai diganti, foto baru mengisi slot yang sama.
         $old = $session->currentPhotos()->where('slot_code', 'IO-01')->first();
@@ -117,6 +120,29 @@ class SlotRulesTest extends TestCase
         Photo::factory()->create(['photo_session_id' => $session->id, 'slot_code' => 'FREE']);
         $session->refreshStatus();
         $this->assertSame('complete', $session->status);
+    }
+
+    public function test_swap_migration_moves_old_lateral_photos_by_content(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        $this->inWorkspace($workspace);
+        $session = PhotoSession::factory()->create(['stage' => Stage::Initial]);
+        // Data lama: IO-01 dulu = kiri (io_left), IO-03 dulu = kanan (io_right).
+        $left = Photo::factory()->create(['photo_session_id' => $session->id, 'slot_code' => 'IO-01', 'category' => 'io_left']);
+        $right = Photo::factory()->create(['photo_session_id' => $session->id, 'slot_code' => 'IO-03', 'category' => 'io_right']);
+        $report = Report::create([
+            'ortho_case_id' => $session->ortho_case_id, 'template' => 'before_after', 'before_session_id' => $session->id,
+            'after_session_id' => $session->id, 'selected_photos' => ['IO-01' => ['before' => $left->id, 'after' => null], 'IO-02' => ['before' => null, 'after' => null]],
+            'created_by' => $dentist->id,
+        ]);
+
+        (require database_path('migrations/2026_10_15_032606_swap_io01_io03_and_relax_control_slots.php'))->up();
+
+        $this->assertSame(['IO-03', 'io_left'], [$left->fresh()->slot_code, $left->fresh()->category]);
+        $this->assertSame(['IO-01', 'io_right'], [$right->fresh()->slot_code, $right->fresh()->category]);
+        // Urutan kunci JSON diatur MySQL; yang penting isinya ditukar.
+        $this->assertEqualsCanonicalizing(['IO-02', 'IO-03'], array_keys($report->fresh()->selected_photos));
+        $this->assertSame($left->id, $report->fresh()->selected_photos['IO-03']['before']);
     }
 
     public function test_control_number_increments_per_case(): void

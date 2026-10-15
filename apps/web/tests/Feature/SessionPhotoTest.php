@@ -11,6 +11,7 @@ use App\Models\Photo;
 use App\Models\PhotoSession;
 use App\Models\Workspace;
 use App\Support\CurrentWorkspace;
+use App\Support\SlotGuides;
 use Database\Seeders\SlotTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -194,7 +195,7 @@ class SessionPhotoTest extends TestCase
         $this->assertStringNotContainsString('GPS', $stored);
         $this->assertSame([80, 120], [$photo->width, $photo->height]); // orientasi 6: tampil tegak
         $this->assertSame('main', $photo->lens_mode);
-        $this->assertSame('2.2.0', $photo->overlay_version);
+        $this->assertSame(SlotGuides::version(), $photo->overlay_version);
         Storage::disk('photos')->assertExists($photo->thumb_path);
         $this->assertSame(strlen($stored), $workspace->fresh()->used_bytes);
         $this->assertTrue(AuditLog::where('action', 'upload')->where('entity_id', $photo->id)->exists());
@@ -359,7 +360,7 @@ class SessionPhotoTest extends TestCase
         $session = $this->sessionIn($workspace, Stage::Control, ['control_number' => 3]);
 
         // Satu-satunya sesi kontrol kasus ini: nomornya menurut urutan tanggal = 1.
-        $this->actingAs($dentist)->get("/sesi/{$session->id}")->assertOk()->assertSee('Kontrol ke-1')->assertSee('IO-07')->assertSee('5 slot wajib kosong'); // kontrol: IO-06/IO-07 opsional
+        $this->actingAs($dentist)->get("/sesi/{$session->id}")->assertOk()->assertSee('Kontrol ke-1')->assertSee('IO-07')->assertSee('3 slot wajib kosong'); // kontrol: wajib IO-01 s.d. IO-03
         $camera = $this->actingAs($dentist)->get("/sesi/{$session->id}/kamera?slot=IO-04")->assertOk();
         $config = json_decode(str($camera->getContent())->between('id="camera-config">', '</script>'), true);
         $this->assertSame('IO-04', $config['start']);

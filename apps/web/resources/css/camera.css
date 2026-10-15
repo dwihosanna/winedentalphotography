@@ -244,60 +244,75 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 @media (prefers-reduced-motion: reduce) { #queueBtn { animation: none; } }
 #mirrorBtn[aria-pressed="true"], #focusBtn[aria-pressed="true"] { border-color: var(--guide); color: var(--guide); }
 
-/* Landscape: slot + tombol potret di kolom kanan, zoom di area hitam kiri, agar frame foto tidak tertutup */
-@media (orientation: landscape) {
-  :root { --side: calc(env(safe-area-inset-right) + 132px); }
-  /* Video rapat ke panel kanan (tanpa celah hitam di kanan); sisa ruang hitam di kiri dipakai kolom zoom.
-     Bukan object-fit: cover, karena pratinjau harus sama dengan foto 4:3 yang tersimpan. */
-  #video { object-position: 100% 50%; }
-  #bottombar {
-    top: 0;
-    left: auto;
-    width: var(--side);
-    display: flex;
-    flex-direction: column;
-    padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 8px) 10px;
-    background: var(--panel);
-  }
-  /* Slot: dua kolom ringkas agar semua slot terlihat tanpa menggulir. Wajib = garis penuh, opsional = putus-putus. */
-  #slotChips {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-content: start;
-    gap: 5px;
-    overflow-x: hidden;
-    overflow-y: auto;
-    padding-bottom: 8px;
-  }
-  #slotChips button { position: relative; min-width: 0; justify-content: center; padding: 6px 0; font-size: 13px; white-space: nowrap; }
-  /* Teks wajib/opsional/✓ disembunyikan; slot terisi ditandai garis hijau (slot aktif tetap amber). */
-  #slotChips small { display: none; }
-  #slotChips button.done { border-color: var(--ok); }
-  #slotChips button[aria-pressed="true"] { border-color: var(--guide); }
-  /* Zoom: kolom vertikal di area hitam kiri (samping video), di bawah bar atas. */
-  #zoomBar {
-    position: fixed;
-    top: calc(env(safe-area-inset-top) + 64px);
-    bottom: calc(env(safe-area-inset-bottom) + 8px);
-    left: calc(env(safe-area-inset-left) + 8px);
-    z-index: 2;
-    flex-direction: column;
-    justify-content: center;
-    gap: 10px;
-    padding: 0;
-    overflow-y: auto;
-    scrollbar-width: none;
-  }
-  #zoomBar::-webkit-scrollbar { display: none; }
-  #zoomBar button { flex: none; width: 52px; min-width: 0; height: 52px; padding: 0; border-radius: 50%; }
-  .shutterRow { grid-template-columns: 1fr; justify-items: center; gap: 6px; }
-  #lastBox { width: 44px; height: 44px; }
-  #shutter { width: 64px; height: 64px; }
-  #lastBox, #shutter, .rightCol { grid-column: 1; justify-self: center; }
-  .rightCol { align-items: center; }
-  #slotCheck { display: none; }
+/* Tata letak landscape: slot + tombol potret di kolom kanan, zoom di area hitam kiri, agar frame foto tidak tertutup.
+   .landscape-ui dipasang camera.js saat layar landscape, ATAU saat HP dipegang landscape tetapi tampilan iOS tetap
+   potret (kunci rotasi / rotasi tertunda) — kasus kedua ditandai .sideways: lapisan menu (#chrome) diputar sesuai
+   posisi HP seperti app Kamera bawaan, sedangkan video tidak diputar (gambarnya sudah benar). */
+.landscape-ui { --side: calc(env(safe-area-inset-right) + 132px); }
+/* Video rapat ke panel kanan (tanpa celah hitam di kanan); sisa ruang hitam di kiri dipakai kolom zoom.
+   Bukan object-fit: cover, karena pratinjau harus sama dengan foto 4:3 yang tersimpan. */
+.landscape-ui:not(.sideways) #video { object-position: 100% 50%; }
+.landscape-ui #bottombar {
+  top: 0;
+  left: auto;
+  width: var(--side);
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 8px) 10px;
+  background: var(--panel);
 }
+/* Slot: dua kolom ringkas agar semua slot terlihat tanpa menggulir. Wajib = garis penuh, opsional = putus-putus. */
+.landscape-ui #slotChips {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+  gap: 5px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+.landscape-ui #slotChips button { position: relative; min-width: 0; justify-content: center; padding: 6px 0; font-size: 13px; white-space: nowrap; }
+/* Teks wajib/opsional/✓ disembunyikan; slot terisi ditandai garis hijau (slot aktif tetap amber). */
+.landscape-ui #slotChips small { display: none; }
+.landscape-ui #slotChips button.done { border-color: var(--ok); }
+.landscape-ui #slotChips button[aria-pressed="true"] { border-color: var(--guide); }
+/* Zoom: kolom vertikal di area hitam kiri (samping video), di bawah bar atas. */
+.landscape-ui #zoomBar {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 64px);
+  bottom: calc(env(safe-area-inset-bottom) + 8px);
+  left: calc(env(safe-area-inset-left) + 8px);
+  z-index: 2;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.landscape-ui #zoomBar::-webkit-scrollbar { display: none; }
+.landscape-ui #zoomBar button { flex: none; width: 52px; min-width: 0; height: 52px; padding: 0; border-radius: 50%; }
+.landscape-ui .shutterRow { grid-template-columns: 1fr; justify-items: center; gap: 6px; }
+.landscape-ui #lastBox { width: 44px; height: 44px; }
+.landscape-ui #shutter { width: 64px; height: 64px; }
+.landscape-ui #lastBox, .landscape-ui #shutter, .landscape-ui .rightCol { grid-column: 1; justify-self: center; }
+.landscape-ui .rightCol { align-items: center; }
+.landscape-ui #slotCheck { display: none; }
+
+/* HP landscape, tampilan potret: putar lapisan menu; elemen fixed di dalamnya mengikuti kotak #chrome yang diputar. */
+.sideways #stage { inset: 0; }
+.sideways #chrome {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 100dvh;
+  height: 100dvw;
+  transform: translate(-50%, -50%) rotate(calc(var(--rel, 0) * 1deg));
+  pointer-events: none;
+  z-index: 3;
+}
+.sideways #chrome > * { pointer-events: auto; }
 
 /* ---------- Layar awal ---------- */
 

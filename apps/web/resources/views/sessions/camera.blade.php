@@ -24,6 +24,8 @@
         <div id="flash" aria-hidden="true"></div>
     </main>
 
+    {{-- Lapisan menu; diputar bila HP landscape tetapi tampilan iOS tetap potret (lihat .sideways di camera.css). --}}
+    <div id="chrome">
     <header id="topbar">
         <a id="doneBtn" class="pill" href="{{ route('sessions.show', $session) }}">Selesai</a>
         <div class="slotHead">
@@ -54,6 +56,7 @@
             </div>
         </div>
     </footer>
+    </div>
 
     <section id="startScreen">
         <div class="startCard">

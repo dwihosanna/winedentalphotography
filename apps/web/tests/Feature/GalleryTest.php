@@ -69,7 +69,7 @@ class GalleryTest extends TestCase
 
         $this->actingAs($dentist)->get("/pasien/{$patient->id}/galeri")
             ->assertOk()
-            ->assertSeeInOrder(['EO-01 · Wajah depan, rest', 'IO-01 · Intraoral kiri', '(3)', '10-01-26 · Awal', '10-03-26 · Kontrol ke-1', '10-06-26 · Lepas'])
+            ->assertSeeInOrder(['EO-01 · Wajah depan, rest', 'IO-01 · Intraoral kanan', '(3)', '10-01-26 · Awal', '10-03-26 · Kontrol ke-1', '10-06-26 · Lepas'])
             ->assertSee(route('gallery.compare', ['patient' => $patient, 'slot' => 'IO-01']), false)
             ->assertDontSee(route('gallery.compare', ['patient' => $patient, 'slot' => 'EO-01']), false);
     }
@@ -120,7 +120,7 @@ class GalleryTest extends TestCase
         $this->actingAs($dentist)->get("/foto/{$photos['initial']->id}")->assertOk()
             ->assertSee($patient->dpid)
             ->assertSee('Awal · 10 Januari 2026')
-            ->assertSee('IO-01 · Intraoral kiri')
+            ->assertSee('IO-01 · Intraoral kanan')
             ->assertSee('Kamera aplikasi')
             ->assertSee($dentist->name)
             ->assertSee('main · 2×')

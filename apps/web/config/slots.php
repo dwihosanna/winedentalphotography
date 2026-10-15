@@ -5,7 +5,8 @@
 //
 // Aturan dokter (13 Okt 2026): sesi Awal wajib EO-01–03 + IO-01–07; kunjungan berikutnya wajib IO-01–07,
 // EO opsional; FREE selalu opsional. Rontgen (RX) opsional di semua tahap: bisa diunggah di kunjungan berikutnya.
-// Kontrol (15 Okt 2026): IO-06 dan IO-07 (anterior atas/bawah) opsional; wajib IO-01 s.d. IO-05.
+// Kontrol (15 Okt 2026): wajib IO-01 s.d. IO-03; oklusal (IO-04/05) dan anterior (IO-06/07) opsional.
+// IO-01 = intraoral kanan, IO-03 = intraoral kiri (ditukar 15 Okt 2026, slots.v2.json 2.3.0).
 // Kasus non-ortho (14 Okt 2026): tahap Sebelum/Sesudah, semua slot opsional; sesi lengkap bila ada minimal 1 foto.
 
 $followUp = [
@@ -21,9 +22,9 @@ return [
         'EO-01' => ['label' => 'Wajah depan, rest', 'category' => 'face_front_rest', 'kind' => 'photo'],
         'EO-02' => ['label' => 'Wajah depan, senyum', 'category' => 'face_front_smile', 'kind' => 'photo'],
         'EO-03' => ['label' => 'Profil kanan (standar ABO)', 'category' => 'face_profile_right', 'kind' => 'photo'],
-        'IO-01' => ['label' => 'Intraoral kiri', 'category' => 'io_left', 'kind' => 'photo'],
+        'IO-01' => ['label' => 'Intraoral kanan', 'category' => 'io_right', 'kind' => 'photo'],
         'IO-02' => ['label' => 'Intraoral depan', 'category' => 'io_front', 'kind' => 'photo'],
-        'IO-03' => ['label' => 'Intraoral kanan', 'category' => 'io_right', 'kind' => 'photo'],
+        'IO-03' => ['label' => 'Intraoral kiri', 'category' => 'io_left', 'kind' => 'photo'],
         'IO-04' => ['label' => 'Oklusal atas', 'category' => 'io_occlusal_upper', 'kind' => 'photo'],
         'IO-05' => ['label' => 'Oklusal bawah', 'category' => 'io_occlusal_lower', 'kind' => 'photo'],
         'IO-06' => ['label' => 'Anterior atas', 'category' => 'io_anterior_upper', 'kind' => 'photo'],
@@ -41,7 +42,7 @@ return [
             'FREE' => false, 'RX-01' => false, 'RX-02' => false,
         ],
         'insertion' => $followUp,
-        'control' => array_replace($followUp, ['IO-06' => false, 'IO-07' => false]),
+        'control' => array_replace($followUp, ['IO-04' => false, 'IO-05' => false, 'IO-06' => false, 'IO-07' => false]),
         'debond' => $followUp,
         'retention' => $followUp,
         'before' => $general,

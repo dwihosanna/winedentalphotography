@@ -67,6 +67,7 @@ function init() {
     return;
   }
 
+  applyLayoutMode();
   selectSlot(config.start);
   renderChips();
   bind();
@@ -94,6 +95,7 @@ function bind() {
   window.addEventListener('online', () => processQueue(true));
   const geometryChanged = () => {
     state.geometryAt = performance.now();
+    applyLayoutMode();
     layoutOverlay();
     setTimeout(checkFrozen, SETTLE_MS + 300); // kamera iOS sering membeku tepat saat HP diputar
   };
@@ -779,9 +781,21 @@ function updateTurn(g, mag) {
   const newRel = Math.abs(rel) === 90 ? rel : 0; // HP terbalik: abaikan
   if (newRel !== t.rel) {
     t.rel = newRel;
+    applyLayoutMode();
     applyMirrorPreview();
     layoutOverlay();
   }
+}
+
+/* Tata letak landscape bila layar landscape, atau bila HP dipegang landscape tetapi tampilan iOS tetap potret
+   (kunci rotasi / rotasi tertunda): menu diputar sesuai posisi HP (.sideways), video tidak. */
+function applyLayoutMode() {
+  const html = document.documentElement;
+  const screenLandscape = matchMedia('(orientation: landscape)').matches;
+  const sideways = !screenLandscape && Math.abs(state.turn.rel) === 90;
+  html.classList.toggle('landscape-ui', screenLandscape || sideways);
+  html.classList.toggle('sideways', sideways);
+  html.style.setProperty('--rel', String(sideways ? state.turn.rel : 0));
 }
 
 /* ---------- Lain-lain ---------- */
