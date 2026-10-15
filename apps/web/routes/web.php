@@ -51,6 +51,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/sesi/{session}/kamera', [PhotoController::class, 'camera'])->name('sessions.camera');
         Route::get('/sesi/{session}/unggah', [PhotoController::class, 'upload'])->name('sessions.upload');
+        Route::get('/sesi/{session}/foto', [PhotoController::class, 'index'])->name('photos.index');
         Route::post('/sesi/{session}/foto', [PhotoController::class, 'store'])->name('photos.store');
         Route::get('/foto/{photo}', [GalleryController::class, 'show'])->name('photos.show');
         Route::get('/foto/{photo}/lihat', [PhotoController::class, 'viewer'])->name('photos.viewer');

@@ -354,6 +354,30 @@ class SessionPhotoTest extends TestCase
         $this->actingAs($dentist)->get("/foto/{$camera}")->assertOk()->assertSee('14 Okt 2026 11:05');
     }
 
+    public function test_camera_gallery_lists_session_photos_in_slot_order(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        [$other] = $this->dentistWithWorkspace();
+        $session = $this->sessionIn($workspace);
+        foreach (['IO-02', 'EO-01', 'IO-02'] as $slot) { // IO-02 diulang: hanya foto terbaru
+            $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", ['file' => $this->jpeg(), 'slot_code' => $slot, 'source' => 'camera'])->assertCreated();
+        }
+        $pdf = UploadedFile::fake()->createWithContent('rontgen.pdf', "%PDF-1.4\n%test\n");
+        $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", ['file' => $pdf, 'slot_code' => 'RX-01', 'source' => 'upload'])->assertCreated();
+
+        $photos = $this->actingAs($dentist)->getJson("/sesi/{$session->id}/foto")->assertOk()->json('photos');
+        $this->assertSame(['EO-01', 'IO-02'], array_column($photos, 'slot')); // urutan slot; rontgen PDF tidak ikut
+        $this->assertStringContainsString('signature=', $photos[0]['thumb']);
+        $this->assertStringContainsString('signature=', $photos[0]['full']);
+
+        $camera = $this->actingAs($dentist)->get("/sesi/{$session->id}/kamera")->assertOk()->assertSee('id="gallery"', false);
+        $config = json_decode(str($camera->getContent())->between('id="camera-config">', '</script>'), true);
+        $this->assertSame(route('photos.index', $session), $config['photosUrl']);
+
+        $this->flushSession();
+        $this->actingAs($other)->getJson("/sesi/{$session->id}/foto")->assertNotFound();
+    }
+
     public function test_session_camera_and_upload_pages_render(): void
     {
         [$dentist, $workspace] = $this->dentistWithWorkspace();

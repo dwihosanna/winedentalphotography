@@ -7,6 +7,8 @@ const el = Object.fromEntries([
   'stage', 'video', 'overlay', 'flash', 'doneBtn', 'slotTitle', 'slotCheck', 'menuBtn', 'level', 'bubble', 'levelText',
   'slotChips', 'zoomBar', 'lastThumb', 'shutter', 'focusBtn', 'mirrorBtn', 'queueBtn', 'startScreen', 'startBtn',
   'startNote', 'panel', 'cameraSelect', 'opacity', 'opacityOut', 'levelBtn', 'toast',
+  'lastBox', 'gallery', 'galleryBack', 'galleryTitle', 'galleryClose', 'galleryGrid', 'galleryView', 'galleryImg',
+  'galleryPrev', 'galleryNext', 'galleryRetake',
 ].map((id) => [id, $(id)]));
 
 const config = JSON.parse($('camera-config').textContent);
@@ -81,7 +83,19 @@ function bind() {
     state.mirrorBySlot[state.slot.code] = !state.mirrorBySlot[state.slot.code];
     applyMirrorPreview();
   });
-  el.queueBtn.addEventListener('click', () => processQueue(true));
+  el.queueBtn.addEventListener('click', (e) => { e.stopPropagation(); processQueue(true); });
+  el.lastBox.addEventListener('click', openGallery);
+  el.lastBox.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openGallery(); } });
+  el.galleryClose.addEventListener('click', closeGallery);
+  el.galleryBack.addEventListener('click', showGalleryGrid);
+  el.galleryPrev.addEventListener('click', () => showGalleryPhoto(gallery.index - 1));
+  el.galleryNext.addEventListener('click', () => showGalleryPhoto(gallery.index + 1));
+  el.galleryRetake.addEventListener('click', () => {
+    const item = gallery.items[gallery.index];
+    closeGallery();
+    if (item) selectSlot(item.slot);
+  });
+  bindGallerySwipe();
   el.cameraSelect.addEventListener('change', () => { state.autoDeviceId = null; savePrefs(); startCamera(); });
   el.focusBtn.addEventListener('click', () => (state.focus.locked ? unlockFocus() : lockFocus()));
   el.opacity.addEventListener('input', () => { applyOpacity(); savePrefs(); });
@@ -167,6 +181,96 @@ function stopCamera() {
   state.stream?.getTracks().forEach((t) => t.stop());
   state.stream = null;
   state.track = null;
+}
+
+/* ---------- Galeri foto sesi di layar kamera ----------
+   Kamera tetap berjalan di belakang; berpindah halaman akan menghentikan kamera dan bisa menghilangkan antrean unggah.
+   Isi: foto di server (URL bertanda tangan) + foto yang masih di antrean unggah (dari memori, ditandai ↑). */
+const gallery = { items: [], index: 0 };
+
+async function openGallery() {
+  el.gallery.hidden = false;
+  showGalleryGrid();
+  el.galleryGrid.replaceChildren(Object.assign(document.createElement('p'), { className: 'galleryNote', textContent: 'Memuat foto…' }));
+  let server = [];
+  try {
+    const res = await fetch(config.photosUrl, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+    if (res.ok) server = (await res.json()).photos;
+  } catch { /* offline: tampilkan antrean saja */ }
+  const pending = state.queue.map((q) => {
+    q.previewUrl ??= URL.createObjectURL(q.blob);
+    return { slot: q.slot.code, label: q.slot.label, thumb: q.previewUrl, full: q.previewUrl, time: 'mengunggah', pending: true };
+  });
+  // Foto antrean menggantikan foto server di slot yang sama (retake yang belum terunggah).
+  const pendingSlots = new Set(pending.map((p) => p.slot));
+  const order = state.slots.map((s) => s.code);
+  gallery.items = [...server.filter((p) => !pendingSlots.has(p.slot)), ...pending]
+    .sort((a, b) => order.indexOf(a.slot) - order.indexOf(b.slot));
+  renderGalleryGrid();
+}
+
+function renderGalleryGrid() {
+  if (!gallery.items.length) {
+    el.galleryGrid.replaceChildren(Object.assign(document.createElement('p'), { className: 'galleryNote', textContent: 'Belum ada foto di sesi ini.' }));
+    return;
+  }
+  el.galleryGrid.replaceChildren(...gallery.items.map((item, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = item.pending ? 'pending' : '';
+    b.setAttribute('aria-label', `${item.slot} ${item.label}`);
+    const img = Object.assign(document.createElement('img'), { src: item.thumb, alt: '', loading: 'lazy' });
+    const cap = Object.assign(document.createElement('span'), { textContent: `${item.slot} · ${item.pending ? '↑' : item.time.slice(-5)}` });
+    b.append(img, cap);
+    b.addEventListener('click', () => showGalleryPhoto(i));
+    return b;
+  }));
+}
+
+function showGalleryGrid() {
+  el.galleryView.hidden = true;
+  el.galleryGrid.hidden = false;
+  el.galleryBack.style.visibility = 'hidden'; // tetap memakan tempat agar judul/Tutup tidak bergeser
+  el.galleryTitle.textContent = 'Foto sesi ini';
+}
+
+function showGalleryPhoto(i) {
+  if (!gallery.items.length) return;
+  gallery.index = (i + gallery.items.length) % gallery.items.length;
+  const item = gallery.items[gallery.index];
+  el.galleryImg.src = item.full;
+  el.galleryImg.alt = `${item.slot} ${item.label}`;
+  el.galleryTitle.textContent = `${item.slot} · ${item.label}${item.pending ? ' · mengunggah' : ` · ${item.time}`}`;
+  el.galleryGrid.hidden = true;
+  el.galleryView.hidden = false;
+  el.galleryBack.style.visibility = 'visible';
+}
+
+function releasePreview(item) {
+  if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+}
+
+function closeGallery() {
+  el.gallery.hidden = true;
+  el.galleryImg.removeAttribute('src');
+  state.lastFrameAt = performance.now(); // jangan dianggap beku karena galeri menutupi video
+}
+
+function bindGallerySwipe() {
+  let start = null;
+  el.galleryView.addEventListener('pointerdown', (e) => { start = { x: e.clientX, y: e.clientY }; });
+  el.galleryView.addEventListener('pointerup', (e) => {
+    if (!start) return;
+    // Menu diputar (.sideways): ubah arah geser ke koordinat lapisan yang diputar.
+    const rel = document.documentElement.classList.contains('sideways') ? state.turn.rel : 0;
+    const a = (-rel * Math.PI) / 180;
+    const rx = e.clientX - start.x;
+    const ry = e.clientY - start.y;
+    const dx = rx * Math.cos(a) - ry * Math.sin(a);
+    const dy = rx * Math.sin(a) + ry * Math.cos(a);
+    start = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) showGalleryPhoto(gallery.index + (dx < 0 ? 1 : -1));
+  });
 }
 
 /* ---------- Pengawas kamera membeku ----------
@@ -619,11 +723,11 @@ async function processQueue(manual = false) {
       renderQueue();
       try {
         await upload(item);
-        state.queue.shift();
+        releasePreview(state.queue.shift());
       } catch (e) {
         item.error = e.message;
         if (e.permanent) {
-          state.queue.shift();
+          releasePreview(state.queue.shift());
           item.slot.filled = false;
           renderChips();
           toast(`${item.slot.code} tidak tersimpan: ${e.message}`);

@@ -46,9 +46,32 @@ class PhotoController extends Controller
                 'start' => $start,
                 'overlayVersion' => SlotGuides::version(),
                 'uploadUrl' => route('photos.store', $session),
+                'photosUrl' => route('photos.index', $session),
                 'doneUrl' => route('sessions.show', $session),
             ],
         ]);
+    }
+
+    /** Foto sesi ini untuk galeri di layar kamera (URL bertanda tangan berumur pendek). */
+    public function index(PhotoSession $session): JsonResponse
+    {
+        $this->authorize('view', $session->orthoCase->patient);
+
+        $slots = $session->slots()->pluck('label', 'slot_code');
+        $order = $slots->keys()->flip();
+        $photos = $session->currentPhotos()->where('mime', 'like', 'image/%')->get()
+            ->sortBy(fn (Photo $p) => [$order[$p->slot_code] ?? 99, $p->created_at])
+            ->values()
+            ->map(fn (Photo $p) => [
+                'id' => $p->id,
+                'slot' => $p->slot_code,
+                'label' => $slots[$p->slot_code] ?? $p->slot_code,
+                'thumb' => $p->thumb_path ? $p->url('thumb') : $p->url($p->displayVariant()),
+                'full' => $p->url($p->displayVariant()),
+                'time' => $p->timestampText(),
+            ]);
+
+        return response()->json(['photos' => $photos]);
     }
 
     public function upload(PhotoSession $session): View

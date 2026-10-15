@@ -44,7 +44,8 @@
         <nav id="slotChips" aria-label="Pilih slot foto"></nav>
         <div id="zoomBar" role="group" aria-label="Zoom kamera" hidden></div>
         <div class="shutterRow">
-            <div id="lastBox">
+            <div id="lastBox" role="button" tabindex="0" aria-label="Buka galeri foto sesi ini" title="Galeri foto sesi ini">
+                <span class="galleryIcon" aria-hidden="true">▦</span>
                 <img id="lastThumb" alt="Foto terakhir" hidden>
                 {{-- Status unggah: lencana kecil di pojok thumbnail (jumlah foto dalam antrean; merah = gagal, ketuk untuk ulang). --}}
                 <button id="queueBtn" type="button" hidden></button>
@@ -56,6 +57,24 @@
             </div>
         </div>
     </footer>
+
+    {{-- Galeri foto sesi ini di atas kamera (kamera tetap berjalan; ikut diputar bersama menu). --}}
+    <section id="gallery" hidden aria-label="Galeri foto sesi ini">
+        <header class="galleryHead">
+            <button id="galleryBack" type="button" style="visibility: hidden">‹ Semua</button>
+            <h2 id="galleryTitle">Foto sesi ini</h2>
+            <button id="galleryClose" type="button">Tutup</button>
+        </header>
+        <div id="galleryGrid"></div>
+        <div id="galleryView" hidden>
+            <div class="frame"><img id="galleryImg" alt=""></div>
+            <div class="galleryNav">
+                <button id="galleryPrev" type="button" aria-label="Foto sebelumnya">‹</button>
+                <button id="galleryRetake" type="button">Foto ulang slot ini</button>
+                <button id="galleryNext" type="button" aria-label="Foto berikutnya">›</button>
+            </div>
+        </div>
+    </section>
     </div>
 
     <section id="startScreen">
