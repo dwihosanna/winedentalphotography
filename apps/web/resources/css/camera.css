@@ -247,6 +247,9 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 /* Landscape: slot + tombol potret di kolom kanan, zoom di area hitam kiri, agar frame foto tidak tertutup */
 @media (orientation: landscape) {
   :root { --side: calc(env(safe-area-inset-right) + 132px); }
+  /* Video rapat ke panel kanan (tanpa celah hitam di kanan); sisa ruang hitam di kiri dipakai kolom zoom.
+     Bukan object-fit: cover, karena pratinjau harus sama dengan foto 4:3 yang tersimpan. */
+  #video { object-position: 100% 50%; }
   #bottombar {
     top: 0;
     left: auto;

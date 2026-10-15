@@ -361,14 +361,16 @@ function layoutOverlay() {
   const vh = el.video.videoHeight;
   if (!vw || !vh) { el.overlay.replaceChildren(); return; }
 
-  // Overlay ditempatkan tepat di atas area gambar video (object-fit: contain).
+  // Overlay ditempatkan tepat di atas area gambar video (object-fit: contain), mengikuti object-position
+  // (landscape: video rapat ke panel kanan, sisa ruang hitam di kiri untuk tombol zoom).
   const r = el.stage.getBoundingClientRect();
   const scale = Math.min(r.width / vw, r.height / vh);
   const dw = vw * scale;
   const dh = vh * scale;
+  const [px, py] = getComputedStyle(el.video).objectPosition.split(' ').map((v) => parseFloat(v) / 100);
   Object.assign(el.overlay.style, {
-    left: `${(r.width - dw) / 2}px`,
-    top: `${(r.height - dh) / 2}px`,
+    left: `${(r.width - dw) * (Number.isFinite(px) ? px : 0.5)}px`,
+    top: `${(r.height - dh) * (Number.isFinite(py) ? py : 0.5)}px`,
     width: `${dw}px`,
     height: `${dh}px`,
   });
