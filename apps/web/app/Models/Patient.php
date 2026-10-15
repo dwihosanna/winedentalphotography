@@ -87,4 +87,25 @@ class Patient extends Model
     {
         return $this->belongsTo(Photo::class, 'avatar_photo_id');
     }
+
+    /**
+     * Foto profil = foto EO-02 (wajah senyum) pertama: dari sesi dengan tanggal paling awal, versi yang berlaku
+     * (bukan yang sudah diganti retake). Tanpa EO-02: null, sheet pasien menampilkan inisial (FR-32).
+     */
+    public function refreshAvatar(): void
+    {
+        $photoId = Photo::query()
+            ->join('photo_sessions', 'photo_sessions.id', '=', 'photos.photo_session_id')
+            ->join('ortho_cases', 'ortho_cases.id', '=', 'photo_sessions.ortho_case_id')
+            ->where('ortho_cases.patient_id', $this->id)
+            ->where('photos.slot_code', 'EO-02')
+            ->whereNull('photos.replaced_by_photo_id')
+            ->where('photos.mime', 'like', 'image/%')
+            ->orderBy('photo_sessions.session_date')->orderBy('photos.created_at')
+            ->value('photos.id');
+
+        if ($photoId !== $this->avatar_photo_id) {
+            $this->forceFill(['avatar_photo_id' => $photoId])->save();
+        }
+    }
 }

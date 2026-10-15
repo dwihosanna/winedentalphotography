@@ -52,9 +52,32 @@ class OrthoCase extends Model
         return $this->isOrtho() ? ($this->brace_type ?: 'Ortodonti') : ($this->treatment_type ?: 'Non-ortho');
     }
 
-    /** Nomor kontrol berikutnya untuk sesi Kontrol baru (FR-05). */
+    /** Nomor sementara untuk sesi Kontrol baru; nomor final ditetapkan renumberControls() (FR-05). */
     public function nextControlNumber(): int
     {
         return (int) $this->sessions()->where('stage', Stage::Control)->max('control_number') + 1;
+    }
+
+    /**
+     * Nomor "Kontrol ke-n" mengikuti urutan tanggal kunjungan (lama → baru), bukan urutan input: foto kontrol lama
+     * yang diunggah belakangan menggeser nomor sesi yang lebih baru. Tanggal sama: urutan dibuat.
+     * Memakai update query (tanpa event model) agar tidak memicu penomoran ulang berulang.
+     *
+     * @return int jumlah sesi yang nomornya berubah
+     */
+    public function renumberControls(): int
+    {
+        $changed = 0;
+        $sessions = $this->sessions()->where('stage', Stage::Control)
+            ->orderBy('session_date')->orderBy('created_at')->orderBy('id')->get(['id', 'control_number']);
+
+        foreach ($sessions->values() as $i => $session) {
+            if ($session->control_number !== $i + 1) {
+                PhotoSession::whereKey($session->id)->update(['control_number' => $i + 1]);
+                $changed++;
+            }
+        }
+
+        return $changed;
     }
 }

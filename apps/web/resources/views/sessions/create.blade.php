@@ -96,7 +96,7 @@
                         </optgroup>
                     @endforeach
                 </select>
-                <span class="hint" data-kind-hint="ortho">Awal: wajib foto wajah + intraoral. Tahap lain: wajib intraoral. Nomor kontrol diisi otomatis.</span>
+                <span class="hint" data-kind-hint="ortho">Awal: wajib foto wajah + intraoral. Tahap lain: wajib intraoral. Nomor kontrol otomatis mengikuti urutan tanggal kunjungan.</span>
                 <span class="hint" data-kind-hint="general">Semua slot opsional: foto bagian yang dirawat saja (mis. intraoral atau FREE untuk close-up).</span>
             </div>
             <div class="field">

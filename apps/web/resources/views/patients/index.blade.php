@@ -57,7 +57,7 @@
                 @foreach ($patients as $patient)
                     <li data-search="{{ $searchText($patient) }}" data-letter="{{ $letter }}">
                         <a class="list-row" href="{{ route('patients.show', $patient) }}">
-                            <span class="avatar">{{ $patient->initials() }}</span>
+                            @include('partials.avatar', ['patient' => $patient, 'class' => 'avatar'])
                             <span class="row-main">
                                 <span class="row-title">{{ $patient->displayName() }}</span><br>
                                 <span class="row-sub">{{ $patient->birth_date->format('d-m-Y') }} · {{ $patient->is_demo ? 'Contoh, tidak dihitung kuota' : $patient->dpid }}</span>

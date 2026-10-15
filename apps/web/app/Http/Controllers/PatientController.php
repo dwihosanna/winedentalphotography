@@ -25,7 +25,7 @@ class PatientController extends Controller
     {
         $this->authorize('viewAny', Patient::class);
 
-        $patients = Patient::with('externalIds')->orderBy('name')->get();
+        $patients = Patient::with(['externalIds', 'avatarPhoto'])->orderBy('name')->get();
         if ($q = trim((string) $request->query('q'))) {
             $patients = $patients->filter(fn (Patient $p) => $this->matches($this->searchText($p), $q));
         }

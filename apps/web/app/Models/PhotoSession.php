@@ -20,6 +20,23 @@ class PhotoSession extends Model
 {
     use BelongsToWorkspace, HasFactory, HasUuids;
 
+    protected static function booted(): void
+    {
+        // Sesi kontrol baru atau tanggalnya diubah: nomori ulang semua kontrol kasus ini menurut tanggal.
+        static::saved(function (PhotoSession $session) {
+            // Foto profil = EO-02 dari sesi paling awal; tanggal sesi berubah bisa mengubah pilihannya.
+            if ($session->wasChanged('session_date') && ! $session->wasRecentlyCreated) {
+                $session->orthoCase->patient->refreshAvatar();
+            }
+
+            if ($session->stage === Stage::Control && ($session->wasRecentlyCreated || $session->wasChanged('session_date'))) {
+                $session->orthoCase->renumberControls();
+                $session->control_number = $session->newQuery()->whereKey($session->id)->value('control_number');
+                $session->syncOriginalAttribute('control_number');
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return ['stage' => Stage::class, 'session_date' => 'date'];

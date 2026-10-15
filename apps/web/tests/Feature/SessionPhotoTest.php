@@ -147,6 +147,37 @@ class SessionPhotoTest extends TestCase
         $this->actingAs($dentist)->post($url, ['ortho_case_id' => $general->id, 'stage' => 'after', 'session_date' => $today])->assertRedirect();
     }
 
+    public function test_control_number_follows_visit_date_when_old_controls_are_uploaded_later(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        $patient = $this->in($workspace, fn () => Patient::factory()->create());
+        $case = $this->in($workspace, fn () => OrthoCase::factory()->create(['patient_id' => $patient->id]));
+        $url = "/pasien/{$patient->id}/sesi";
+        $control = fn (string $date) => $this->actingAs($dentist)->post($url, ['ortho_case_id' => $case->id, 'stage' => 'control', 'session_date' => $date])->assertRedirect();
+
+        // Kunjungan hari ini dicatat lebih dulu → sementara Kontrol ke-1.
+        $control('2026-10-15');
+        $number = fn () => PhotoSession::withoutGlobalScopes()->where('stage', 'control')->orderBy('session_date')->pluck('control_number', 'session_date')
+            ->mapWithKeys(fn ($n, $date) => [substr($date, 0, 10) => $n])->all();
+        $this->assertSame(['2026-10-15' => 1], $number());
+
+        // Lalu foto kontrol 1–5 yang lama diunggah (tanggal lebih awal, urutan input acak).
+        foreach (['2026-03-01', '2026-01-05', '2026-07-01', '2026-02-02', '2026-05-10'] as $date) {
+            $control($date);
+        }
+        $this->assertSame([
+            '2026-01-05' => 1, '2026-02-02' => 2, '2026-03-01' => 3, '2026-05-10' => 4, '2026-07-01' => 5, '2026-10-15' => 6,
+        ], $number());
+
+        // Tanggal sesi dikoreksi → nomor ikut bergeser.
+        $july = PhotoSession::withoutGlobalScopes()->whereDate('session_date', '2026-07-01')->sole();
+        $this->actingAs($dentist)->put("/sesi/{$july->id}", ['session_date' => '2025-12-20'])->assertRedirect();
+        $this->assertSame([
+            '2025-12-20' => 1, '2026-01-05' => 2, '2026-02-02' => 3, '2026-03-01' => 4, '2026-05-10' => 5, '2026-10-15' => 6,
+        ], $number());
+        $this->actingAs($dentist)->get("/sesi/{$july->id}")->assertSee('Kontrol ke-1');
+    }
+
     public function test_camera_upload_stores_clean_jpeg_thumb_hash_and_updates_quota(): void
     {
         [$dentist, $workspace] = $this->dentistWithWorkspace();
@@ -224,16 +255,39 @@ class SessionPhotoTest extends TestCase
         $this->assertSame('foto.jpg', $photo->original_name);
     }
 
-    public function test_eo01_becomes_patient_avatar(): void
+    public function test_first_eo02_photo_becomes_patient_avatar(): void
     {
         [$dentist, $workspace] = $this->dentistWithWorkspace();
-        $session = $this->sessionIn($workspace);
+        $patient = $this->in($workspace, fn () => Patient::factory()->create());
+        $case = $this->in($workspace, fn () => OrthoCase::factory()->create(['patient_id' => $patient->id]));
+        $later = $this->in($workspace, fn () => PhotoSession::factory()->create(['ortho_case_id' => $case->id, 'stage' => Stage::Debond, 'session_date' => '2026-09-01']));
+        $first = $this->in($workspace, fn () => PhotoSession::factory()->create(['ortho_case_id' => $case->id, 'stage' => Stage::Initial, 'session_date' => '2025-01-10']));
+        $upload = fn (PhotoSession $s, string $slot) => $this->actingAs($dentist)->postJson("/sesi/{$s->id}/foto", [
+            'file' => $this->jpeg(), 'slot_code' => $slot, 'source' => 'camera',
+        ])->assertCreated()->json('id');
+        $avatar = fn () => Patient::withoutGlobalScopes()->find($patient->id)->avatar_photo_id;
 
-        $id = $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", [
-            'file' => $this->jpeg(), 'slot_code' => 'EO-01', 'source' => 'camera',
-        ])->json('id');
+        // Tanpa EO-02: tetap inisial. EO-01 tidak lagi dipakai.
+        $upload($first, 'EO-01');
+        $this->assertNull($avatar());
+        $this->actingAs($dentist)->get("/pasien/{$patient->id}")->assertSee('<span class="avatar avatar-lg">'.$patient->initials().'</span>', false);
 
-        $this->assertSame($id, Patient::withoutGlobalScopes()->first()->avatar_photo_id);
+        // EO-02 sesi lebih baru diunggah dulu, lalu EO-02 sesi Awal: yang dipakai EO-02 pertama (sesi Awal).
+        $laterEo2 = $upload($later, 'EO-02');
+        $this->assertSame($laterEo2, $avatar());
+        $firstEo2 = $upload($first, 'EO-02');
+        $this->assertSame($firstEo2, $avatar());
+
+        // Retake EO-02 sesi Awal: foto pengganti menjadi foto profil.
+        $retake = $upload($first, 'EO-02');
+        $this->assertSame($retake, $avatar());
+
+        // Tanggal sesi Lepas dikoreksi lebih awal dari sesi Awal: EO-02 sesi itu menjadi yang pertama.
+        $this->actingAs($dentist)->put("/sesi/{$later->id}", ['session_date' => '2024-12-01'])->assertRedirect();
+        $this->assertSame($laterEo2, $avatar());
+
+        $this->actingAs($dentist)->get("/pasien/{$patient->id}")->assertSee('avatar avatar-lg avatar-photo', false);
+        $this->actingAs($dentist)->get('/pasien')->assertSee('avatar avatar-photo', false);
     }
 
     public function test_full_storage_rejects_upload_and_keeps_no_file(): void
@@ -304,7 +358,8 @@ class SessionPhotoTest extends TestCase
         [$dentist, $workspace] = $this->dentistWithWorkspace();
         $session = $this->sessionIn($workspace, Stage::Control, ['control_number' => 3]);
 
-        $this->actingAs($dentist)->get("/sesi/{$session->id}")->assertOk()->assertSee('Kontrol ke-3')->assertSee('IO-07')->assertSee('7 slot wajib kosong');
+        // Satu-satunya sesi kontrol kasus ini: nomornya menurut urutan tanggal = 1.
+        $this->actingAs($dentist)->get("/sesi/{$session->id}")->assertOk()->assertSee('Kontrol ke-1')->assertSee('IO-07')->assertSee('7 slot wajib kosong');
         $camera = $this->actingAs($dentist)->get("/sesi/{$session->id}/kamera?slot=IO-04")->assertOk();
         $config = json_decode(str($camera->getContent())->between('id="camera-config">', '</script>'), true);
         $this->assertSame('IO-04', $config['start']);

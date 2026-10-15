@@ -16,6 +16,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>@yield('title') – {{ config('app.name') }}</title>
     @include('partials.timestamp-pref')
+    @unless (View::hasSection('allow-zoom'))
+        @include('partials.pwa-zoom-lock')
+    @endunless
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
 </head>

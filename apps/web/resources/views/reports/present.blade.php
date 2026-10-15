@@ -12,6 +12,7 @@
     <title>Case Report Preview · {{ $patient->name }}</title>
     {{-- Latar gelap netral (bukan warna merek) agar warna gigi/gusi dinilai apa adanya, sama seperti layar kamera. --}}
     @include('partials.timestamp-pref')
+    @include('partials.pwa-zoom-lock')
     @vite(['resources/css/present.css', 'resources/js/present.js'])
 </head>
 <body data-no-update-banner>

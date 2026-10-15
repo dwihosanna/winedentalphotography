@@ -158,6 +158,11 @@ class PatientPagesTest extends TestCase
         $this->get('/login')->assertOk()->assertSee('© 2026 MarikhTech x Wine Dental Aesthetic · Version 1.23');
     }
 
+    public function test_pinch_zoom_is_locked_in_installed_app_except_pdf_viewer(): void
+    {
+        $this->get('/login')->assertOk()->assertSee("matchMedia('(display-mode: standalone)')", false)->assertSee('gesturestart', false);
+    }
+
     public function test_pages_are_installable_as_pwa(): void
     {
         $this->get('/login')->assertSee('rel="manifest" href="/manifest.webmanifest"', false)

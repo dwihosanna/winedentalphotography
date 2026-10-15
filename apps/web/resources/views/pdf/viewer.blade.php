@@ -4,6 +4,9 @@
 
 @section('body-class', 'pdf-page')
 
+{{-- PDF perlu bisa di-zoom dengan dua jari. --}}
+@section('allow-zoom', '1')
+
 @section('body')
     <header class="app-bar">
         @include('partials.back', ['href' => $backUrl])

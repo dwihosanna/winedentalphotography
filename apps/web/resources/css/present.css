@@ -88,3 +88,6 @@ body.photo-viewer { grid-template-rows: auto minmax(0, 1fr); }
   background: rgb(0 0 0 / .6); color: #fff; font-size: 13px; font-variant-numeric: tabular-nums; pointer-events: none;
 }
 [data-timestamps="off"] .viewer .ts { display: none; }
+
+/* PWA: zoom dikunci (partials/pwa-zoom-lock). */
+.zoom-locked, .zoom-locked body { touch-action: pan-x pan-y; }

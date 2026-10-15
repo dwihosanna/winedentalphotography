@@ -20,7 +20,7 @@
     @endif
 
     <section class="profile">
-        <span class="avatar avatar-lg">{{ $patient->initials() }}</span>
+        @include('partials.avatar', ['patient' => $patient, 'class' => 'avatar avatar-lg'])
         <p class="name">{{ $patient->displayName() }}</p>
         <button class="id-tag" type="button" data-copy="{{ $patient->dpid }}" aria-label="Salin DPID">{{ $patient->dpid }}</button>
     </section>

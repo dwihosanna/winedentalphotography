@@ -135,7 +135,8 @@ class ReportTest extends TestCase
         $this->actingAs($dentist)->get("/report/{$report->id}")->assertOk()->assertSee('Buka PDF')
             ->assertSee(route('reports.viewer', $report), false);
         $this->actingAs($dentist)->get("/report/{$report->id}/lihat")->assertOk()
-            ->assertSee('pdf-config', false)->assertViewHas('pdfUrl', route('reports.pdf', $report))->assertSee('Bagikan');
+            ->assertSee('pdf-config', false)->assertViewHas('pdfUrl', route('reports.pdf', $report))->assertSee('Bagikan')
+            ->assertDontSee('gesturestart', false); // PDF tetap bisa di-zoom
         $pdf = $this->actingAs($dentist)->get("/report/{$report->id}/pdf")->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $fileName = 'Report-Ayu Setiawati-'.$report->created_at->format('d-m-Y').'.pdf';
         $this->assertStringContainsString($fileName, $pdf->headers->get('Content-Disposition'));

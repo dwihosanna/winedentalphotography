@@ -159,17 +159,11 @@ class StorePhoto
         return [$bytes, $info + ['width' => $w, 'height' => $h]];
     }
 
-    /** Foto profil pasien = EO-01 dari sesi terbaru (FR-32). */
+    /** Foto profil pasien = EO-02 pertama (lihat Patient::refreshAvatar). */
     private function updateAvatar(PhotoSession $session, Photo $photo): void
     {
-        if ($photo->slot_code !== 'EO-01') {
-            return;
-        }
-
-        $patient = $session->orthoCase->patient;
-        $current = $patient->avatarPhoto?->session;
-        if ($current === null || $current->session_date->lte($session->session_date)) {
-            $patient->forceFill(['avatar_photo_id' => $photo->id])->save();
+        if ($photo->slot_code === 'EO-02') {
+            $session->orthoCase->patient->refreshAvatar();
         }
     }
 }

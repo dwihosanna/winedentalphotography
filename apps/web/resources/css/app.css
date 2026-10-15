@@ -150,3 +150,9 @@ details.card[open] > summary { margin-bottom: var(--space-3); }
 /* Perangkat tepercaya. */
 .device-row { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
 .device-row p { margin: var(--space-1) 0 0; font-size: var(--fs-sm); }
+
+/* Foto profil pasien: thumbnail EO-02 dipotong bulat. */
+.avatar-photo { object-fit: cover; padding: 0; background: var(--surface-2); }
+
+/* PWA: zoom dikunci (partials/pwa-zoom-lock); ketuk dua kali juga tidak memperbesar. */
+.zoom-locked, .zoom-locked body { touch-action: pan-x pan-y; }

@@ -378,3 +378,6 @@ legend + * { clear: both; }
 
 
 .startCard a.muted { text-align: center; text-decoration: underline; }
+
+/* PWA: zoom dikunci (partials/pwa-zoom-lock). */
+.zoom-locked, .zoom-locked body { touch-action: pan-x pan-y; }

@@ -13,6 +13,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Kamera · {{ $patient->name }}</title>
     {{-- Layar kamera netral (hitam + garis amber), bukan warna merek: warna sekitar memengaruhi penilaian warna gusi/gigi. --}}
+    @include('partials.pwa-zoom-lock')
     @vite(['resources/css/camera.css', 'resources/js/app.js', 'resources/js/camera.js'])
 </head>
 {{-- data-no-update-banner: banner versi baru tidak muncul saat memotret (SRS 11.4). --}}
