@@ -359,7 +359,7 @@ class SessionPhotoTest extends TestCase
         $session = $this->sessionIn($workspace, Stage::Control, ['control_number' => 3]);
 
         // Satu-satunya sesi kontrol kasus ini: nomornya menurut urutan tanggal = 1.
-        $this->actingAs($dentist)->get("/sesi/{$session->id}")->assertOk()->assertSee('Kontrol ke-1')->assertSee('IO-07')->assertSee('7 slot wajib kosong');
+        $this->actingAs($dentist)->get("/sesi/{$session->id}")->assertOk()->assertSee('Kontrol ke-1')->assertSee('IO-07')->assertSee('5 slot wajib kosong'); // kontrol: IO-06/IO-07 opsional
         $camera = $this->actingAs($dentist)->get("/sesi/{$session->id}/kamera?slot=IO-04")->assertOk();
         $config = json_decode(str($camera->getContent())->between('id="camera-config">', '</script>'), true);
         $this->assertSame('IO-04', $config['start']);

@@ -37,10 +37,16 @@ class SlotRulesTest extends TestCase
 
     public function test_follow_up_sessions_require_io_only(): void
     {
-        foreach ([Stage::Insertion, Stage::Control, Stage::Debond, Stage::Retention] as $stage) {
+        foreach ([Stage::Insertion, Stage::Debond, Stage::Retention] as $stage) {
             $this->assertSame(self::IO, $this->required($stage), $stage->value);
             $this->assertSame(3, SlotTemplate::where('stage', $stage)->whereIn('slot_code', self::EO)->where('required', false)->count());
         }
+    }
+
+    public function test_control_sessions_make_anterior_closeups_optional(): void
+    {
+        $this->assertSame(['IO-01', 'IO-02', 'IO-03', 'IO-04', 'IO-05'], $this->required(Stage::Control));
+        $this->assertSame(2, SlotTemplate::where('stage', Stage::Control)->whereIn('slot_code', ['IO-06', 'IO-07'])->where('required', false)->count());
     }
 
     public function test_xray_is_optional_in_every_stage(): void
@@ -61,11 +67,11 @@ class SlotRulesTest extends TestCase
         $this->inWorkspace($workspace);
         $session = PhotoSession::factory()->create(['stage' => Stage::Control, 'control_number' => 1]);
 
-        foreach (self::IO as $code) {
+        foreach (array_diff(self::IO, ['IO-06', 'IO-07']) as $code) {
             Photo::factory()->create(['photo_session_id' => $session->id, 'slot_code' => $code]);
         }
         $session->refreshStatus();
-        $this->assertSame('complete', $session->status);
+        $this->assertSame('complete', $session->status); // IO-06/IO-07 opsional saat kontrol
 
         // Retake: foto lama ditandai diganti, foto baru mengisi slot yang sama.
         $old = $session->currentPhotos()->where('slot_code', 'IO-01')->first();
