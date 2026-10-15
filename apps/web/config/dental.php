@@ -2,7 +2,7 @@
 
 return [
     // Versi aplikasi di footer. Naikkan setiap rilis ke produksi (1.01, 1.02, ...).
-    'version' => '1.23',
+    'version' => '1.24',
 
     // "Percayai perangkat ini": tetap masuk sekian hari sejak terakhir dipakai (bergulir).
     'trusted_device_days' => (int) env('TRUSTED_DEVICE_DAYS', 180),

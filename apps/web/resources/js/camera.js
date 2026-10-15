@@ -38,6 +38,8 @@ const state = {
   turn: { sign: 0, hand: 0, phys: null, rel: 0 },
   geometryAt: 0, // waktu terakhir layar/video berputar (capture menunggu sampai stabil)
   lastLandscapeScr: null, // arah landscape layar terakhir (90/-90), untuk bingkai video yang belum ikut berputar
+  lastFrameAt: 0, // waktu frame video terakhir tampil (pengawas kamera membeku)
+  recovering: false,
   autoDeviceId: null,
   focus: { locked: false, distance: null, mode: null },
   zoomBase: 1,
@@ -90,7 +92,11 @@ function bind() {
     if (state.queue.length) { e.preventDefault(); e.returnValue = ''; }
   });
   window.addEventListener('online', () => processQueue(true));
-  const geometryChanged = () => { state.geometryAt = performance.now(); layoutOverlay(); };
+  const geometryChanged = () => {
+    state.geometryAt = performance.now();
+    layoutOverlay();
+    setTimeout(checkFrozen, SETTLE_MS + 300); // kamera iOS sering membeku tepat saat HP diputar
+  };
   window.addEventListener('resize', geometryChanged);
   screen.orientation?.addEventListener?.('change', geometryChanged);
   el.video.addEventListener('resize', geometryChanged); // dimensi video berubah saat HP diputar
@@ -107,6 +113,7 @@ async function onStart() {
   // ketukan pengguna. Ditunggu dulu sebelum kamera: dua dialog izin bersamaan di iOS bisa saling menimpa.
   await enableLevel();
   await startCamera();
+  watchFrames();
 }
 
 /* ---------- Kamera ---------- */
@@ -158,6 +165,51 @@ function stopCamera() {
   state.stream?.getTracks().forEach((t) => t.stop());
   state.stream = null;
   state.track = null;
+}
+
+/* ---------- Pengawas kamera membeku ----------
+   Safari iOS kadang berhenti mengirim frame (track tetap "live") saat HP diputar ketika aplikasi sibuk mengolah/
+   mengunggah foto: video membeku di frame terakhir. Frame dipantau; bila >1,5 detik tidak ada frame baru, video
+   disambung ulang lalu, bila masih beku, kamera dibuka ulang. Capture ditolak selama beku. */
+const FROZEN_MS = 1500;
+
+function watchFrames() {
+  state.lastFrameAt = performance.now();
+  if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+    const tick = () => { state.lastFrameAt = performance.now(); el.video.requestVideoFrameCallback(tick); };
+    el.video.requestVideoFrameCallback(tick);
+  } else {
+    el.video.addEventListener('timeupdate', () => { state.lastFrameAt = performance.now(); });
+  }
+  setInterval(checkFrozen, 1000);
+}
+
+function isFrozen() {
+  return !!state.track && state.lastFrameAt > 0 && performance.now() - state.lastFrameAt > FROZEN_MS;
+}
+
+function checkFrozen() {
+  if (!document.hidden && !state.recovering && isFrozen()) recoverCamera();
+}
+
+async function recoverCamera() {
+  if (state.recovering) return;
+  state.recovering = true;
+  el.shutter.disabled = true;
+  try {
+    // 1) Sambung ulang elemen video ke stream yang sama (murah, sering cukup).
+    el.video.srcObject = null;
+    el.video.srcObject = state.stream;
+    await el.video.play().catch(() => {});
+    await new Promise((r) => setTimeout(r, 800));
+    // 2) Masih beku: buka ulang kamera (zoom/lensa mengikuti pilihan terakhir).
+    if (isFrozen()) await startCamera();
+  } finally {
+    state.lastFrameAt = performance.now();
+    state.recovering = false;
+    if (state.track) el.shutter.disabled = false;
+    layoutOverlay();
+  }
 }
 
 function waitForVideo() {
@@ -499,6 +551,11 @@ async function capture() {
   const canvas = captureCanvas;
   try {
     await settleGeometry();
+    if (isFrozen()) {
+      toast('Kamera sedang dipulihkan, coba lagi sebentar.');
+      recoverCamera();
+      return;
+    }
     const vw = v.videoWidth;
     const vh = v.videoHeight;
     const rel = captureTurn(vw, vh);
