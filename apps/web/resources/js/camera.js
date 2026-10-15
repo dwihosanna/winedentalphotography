@@ -36,6 +36,8 @@ const state = {
   level: { on: false, roll: null, pitch: null, g: null },
   // Rotasi fisik HP dari sensor gravitasi. rel = selisih dengan rotasi layar (kunci rotasi aktif).
   turn: { sign: 0, hand: 0, phys: null, rel: 0 },
+  geometryAt: 0, // waktu terakhir layar/video berputar (capture menunggu sampai stabil)
+  lastLandscapeScr: null, // arah landscape layar terakhir (90/-90), untuk bingkai video yang belum ikut berputar
   autoDeviceId: null,
   focus: { locked: false, distance: null, mode: null },
   zoomBase: 1,
@@ -88,9 +90,10 @@ function bind() {
     if (state.queue.length) { e.preventDefault(); e.returnValue = ''; }
   });
   window.addEventListener('online', () => processQueue(true));
-  window.addEventListener('resize', layoutOverlay);
-  screen.orientation?.addEventListener?.('change', layoutOverlay);
-  el.video.addEventListener('resize', layoutOverlay); // dimensi video berubah saat HP diputar
+  const geometryChanged = () => { state.geometryAt = performance.now(); layoutOverlay(); };
+  window.addEventListener('resize', geometryChanged);
+  screen.orientation?.addEventListener?.('change', geometryChanged);
+  el.video.addEventListener('resize', geometryChanged); // dimensi video berubah saat HP diputar
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && state.started && (!state.track || state.track.readyState === 'ended')) startCamera();
   });
@@ -100,8 +103,9 @@ async function onStart() {
   el.startScreen.hidden = true;
   if (state.started) return;
   state.started = true;
-  // Sensor gerak dipakai untuk waterpass dan rotasi garis bantu; iOS hanya mengizinkan dari ketukan pengguna.
-  enableLevel();
+  // Sensor gerak dipakai untuk waterpass, rotasi garis bantu, dan orientasi foto; iOS hanya mengizinkan dari
+  // ketukan pengguna. Ditunggu dulu sebelum kamera: dua dialog izin bersamaan di iOS bisa saling menimpa.
+  await enableLevel();
   await startCamera();
 }
 
@@ -283,8 +287,13 @@ async function setZoomX(x, remember = true) {
   const range = state.track?.getCapabilities?.().zoom;
   if (!range) return;
   const z = Math.min(range.max, Math.max(range.min, x * state.zoomBase));
-  if (!(await tryAdvanced({ zoom: z }))) toast('Kamera menolak pengaturan zoom.');
-  await reapplyFocusLock();
+  // Zoom sama: jangan applyConstraints lagi. Di iOS itu menghentikan kamera sejenak (sering tepat saat HP diputar
+  // di antara foto berurutan) sehingga layar macet dan tidak ikut berputar.
+  const current = state.track.getSettings().zoom;
+  if (current == null || Math.abs(current - z) > 0.01) {
+    if (!(await tryAdvanced({ zoom: z }))) toast('Kamera menolak pengaturan zoom.');
+    await reapplyFocusLock();
+  }
   if (remember && state.slot) {
     state.zoomBySlot[state.slot.code] = x;
     savePrefs();
@@ -451,17 +460,47 @@ function applyOpacity() {
 
 /* ---------- Capture dan unggah ---------- */
 
+// Satu kanvas dipakai ulang lalu dikecilkan setelah dipakai: Safari iOS membatasi total memori kanvas, dan kanvas
+// 12 MP baru di tiap foto (±48 MB) yang belum dibersihkan membuat foto berurutan tersendat/macet.
+const captureCanvas = document.createElement('canvas');
+function releaseCanvas(canvas) {
+  canvas.width = 1;
+  canvas.height = 1;
+}
+
+// Tunggu sampai layar/video selesai berputar (maks. ±0,7 detik) agar foto tidak diambil di tengah rotasi.
+const SETTLE_MS = 700;
+async function settleGeometry() {
+  const wait = (state.geometryAt ?? 0) + SETTLE_MS - performance.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+}
+
+/* Rotasi foto relatif terhadap bingkai video saat ini, dari posisi fisik HP (gravitasi), bukan dari tampilan.
+   Tampilan PWA iOS kadang tidak ikut berputar (atau terlambat) saat foto diambil berurutan; dengan cara ini foto
+   intraoral yang dipegang landscape tetap tersimpan landscape. Tanpa sensor gerak: ikuti tampilan seperti biasa. */
+function captureTurn(vw, vh) {
+  const t = state.turn;
+  if (t.phys == null) return t.rel;
+  const scr = norm(screenAngle());
+  if (Math.abs(scr) === 90) state.lastLandscapeScr = scr;
+  // Bingkai landscape padahal layar portrait (rotasi belum selesai): pakai arah landscape terakhir.
+  const frame = vw > vh ? (Math.abs(scr) === 90 ? scr : (state.lastLandscapeScr ?? (Math.abs(t.phys) === 90 ? t.phys : 90))) : 0;
+  const rel = norm(t.phys - frame);
+  return Math.abs(rel) === 90 ? rel : 0; // HP terbalik: abaikan
+}
+
 async function capture() {
   const v = el.video;
   if (!state.track || !v.videoWidth) return;
 
   el.shutter.disabled = true;
+  const canvas = captureCanvas;
   try {
+    await settleGeometry();
     const vw = v.videoWidth;
     const vh = v.videoHeight;
-    const rel = state.turn.rel;
+    const rel = captureTurn(vw, vh);
     const [w, h] = rel % 180 ? [vh, vw] : [vw, vh]; // foto disimpan tegak sesuai posisi HP
-    const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
@@ -473,6 +512,7 @@ async function capture() {
     ctx.drawImage(v, -vw / 2, -vh / 2, vw, vh);
     const blob = await new Promise((resolve, reject) =>
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Gagal membuat JPEG'))), 'image/jpeg', 0.95));
+    releaseCanvas(canvas);
 
     const settings = state.track.getSettings();
     const slot = state.slot;
@@ -498,6 +538,7 @@ async function capture() {
     else toast('Semua slot terisi. Ketuk Selesai bila foto sudah terunggah.');
     processQueue();
   } catch (e) {
+    releaseCanvas(canvas);
     toast(`Foto gagal dibuat: ${e.message}`);
   } finally {
     el.shutter.disabled = false;
@@ -587,7 +628,7 @@ async function enableLevel() {
     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
       const permission = await DeviceMotionEvent.requestPermission();
       if (permission !== 'granted') {
-        toast('Izin sensor gerak ditolak. Waterpass dan rotasi garis bantu tidak aktif.');
+        toast('Izin sensor gerak ditolak: foto landscape hanya benar bila layar ikut berputar. Izinkan lewat Pengaturan Safari, lalu buka ulang kamera.');
         return;
       }
     }

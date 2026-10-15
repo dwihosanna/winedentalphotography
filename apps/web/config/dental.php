@@ -2,7 +2,10 @@
 
 return [
     // Versi aplikasi di footer. Naikkan setiap rilis ke produksi (1.01, 1.02, ...).
-    'version' => '1.16',
+    'version' => '1.17',
+
+    // "Percayai perangkat ini": tetap masuk sekian hari sejak terakhir dipakai (bergulir).
+    'trusted_device_days' => (int) env('TRUSTED_DEVICE_DAYS', 180),
 
     // Zona waktu tampilan timestamp foto (aplikasi menyimpan waktu dalam UTC).
     'display_timezone' => env('DISPLAY_TIMEZONE', 'Asia/Jakarta'),

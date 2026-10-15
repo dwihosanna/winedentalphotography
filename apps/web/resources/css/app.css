@@ -146,3 +146,7 @@ details.card[open] > summary { margin-bottom: var(--space-3); }
 .gallery-grid .ts { top: 4px; bottom: auto; }
 [data-timestamps="off"] .ts { display: none; }
 .ts-toggle[aria-pressed="false"] { opacity: .6; text-decoration: line-through; }
+
+/* Perangkat tepercaya. */
+.device-row { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.device-row p { margin: var(--space-1) 0 0; font-size: var(--fs-sm); }

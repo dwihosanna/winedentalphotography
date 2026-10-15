@@ -9,6 +9,7 @@
             <div class="menu-panel">
                 <p><b>{{ $workspace->practice_name }}</b><br><span class="muted">{{ auth()->user()->email }}</span></p>
                 @include('partials.usage')
+                <a class="btn btn-ghost btn-block" href="{{ route('devices.index') }}">Perangkat tepercaya</a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button class="btn btn-secondary btn-block" type="submit">Keluar</button>

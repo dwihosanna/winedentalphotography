@@ -15,7 +15,7 @@
             <label for="password">Kata sandi</label>
             <input id="password" class="input" type="password" name="password" autocomplete="current-password" required>
         </div>
-        <label class="check"><input type="checkbox" name="remember" value="1"> <span>Ingat saya di HP ini</span></label>
+        <label class="check"><input type="checkbox" name="remember" value="1" checked data-trust-device> <span>Percayai perangkat ini: tidak perlu login ulang selama {{ config('dental.trusted_device_days') }} hari. Jangan centang di komputer umum.</span></label>
         <button class="btn btn-primary btn-block" type="submit">Masuk</button>
         @include('partials.google-button')
         <div class="row-actions">

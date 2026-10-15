@@ -8,6 +8,7 @@ use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\PhotoEditController;
 use App\Http\Controllers\PhotoSessionController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\TrustedDeviceController;
 use App\Http\Middleware\EnsureOnboarded;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,10 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/akun/perangkat', [TrustedDeviceController::class, 'index'])->name('devices.index');
+    Route::delete('/akun/perangkat/lainnya', [TrustedDeviceController::class, 'destroyOthers'])->name('devices.destroy-others');
+    Route::delete('/akun/perangkat/{device}', [TrustedDeviceController::class, 'destroy'])->name('devices.destroy');
+
     Route::get('/onboarding', [OnboardingController::class, 'show'])->name('onboarding');
     Route::post('/onboarding', [OnboardingController::class, 'store']);
 
