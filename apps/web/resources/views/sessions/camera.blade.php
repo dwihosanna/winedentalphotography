@@ -41,12 +41,15 @@
         <nav id="slotChips" aria-label="Pilih slot foto"></nav>
         <div id="zoomBar" role="group" aria-label="Zoom kamera" hidden></div>
         <div class="shutterRow">
-            <div id="lastBox"><img id="lastThumb" alt="Foto terakhir" hidden></div>
+            <div id="lastBox">
+                <img id="lastThumb" alt="Foto terakhir" hidden>
+                {{-- Status unggah: lencana kecil di pojok thumbnail (jumlah foto dalam antrean; merah = gagal, ketuk untuk ulang). --}}
+                <button id="queueBtn" type="button" hidden></button>
+            </div>
             <button id="shutter" type="button" aria-label="Ambil foto" disabled></button>
             <div class="rightCol">
                 <button id="focusBtn" type="button" aria-pressed="false" hidden>Kunci fokus</button>
                 <button id="mirrorBtn" type="button" aria-pressed="false" hidden>Cermin</button>
-                <button id="queueBtn" type="button" hidden></button>
             </div>
         </div>
     </footer>

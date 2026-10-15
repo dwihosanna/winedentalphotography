@@ -605,7 +605,11 @@ function renderQueue() {
   if (!n) return;
   const failed = !!state.queue[0].error && !state.uploading;
   el.queueBtn.classList.toggle('error', !!failed);
-  el.queueBtn.textContent = failed ? `${n} belum terunggah · coba lagi` : `Mengunggah ${n} foto…`;
+  // Lencana ringkas; kalimat lengkap untuk pembaca layar dan tooltip.
+  const label = failed ? `${n} foto belum terunggah, ketuk untuk coba lagi` : `Mengunggah ${n} foto`;
+  el.queueBtn.textContent = failed ? `!${n}` : `↑${n}`;
+  el.queueBtn.setAttribute('aria-label', label);
+  el.queueBtn.title = label;
 }
 
 function showLast(blob) {
