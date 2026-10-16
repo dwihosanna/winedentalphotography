@@ -86,6 +86,8 @@ button.danger { color: var(--danger); border-color: #5a2d2a; }
 #slotTitle { margin: 0; font-size: 17px; font-weight: 600; }
 #slotCheck { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
 .pill { padding: 6px 10px; font-size: 13px; }
+#menuBtn { display: grid; place-items: center; padding: 5px 7px; }
+#menuBtn svg { display: block; }
 a.pill { display: inline-block; color: inherit; text-decoration: none; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; }
 
 /* ---------- Waterpass ---------- */
@@ -255,6 +257,11 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 .landscape-ui { --side: calc(env(safe-area-inset-left) + 132px); }
 .landscape-ui #stage { inset: 0 0 0 var(--side); }
 .landscape-ui #topbar { left: var(--side); right: 0; }
+/* Sisi yang menempel ke panel tidak perlu jarak safe area (sudah di dalam --side): tombol rapat ke batas panel. */
+.landscape-ui:not(.panel-right) #topbar { padding-left: 12px; }
+/* Sisi seberang: tombol sejajar tepi luar kolom zoom. */
+.landscape-ui #topbar { padding-right: calc(env(safe-area-inset-right) + 8px); }
+.landscape-ui.panel-right #topbar { padding-left: calc(env(safe-area-inset-left) + 8px); }
 .landscape-ui #level { left: calc(var(--side) + (100% - var(--side)) / 2); }
 /* Video rapat ke panel kiri (tanpa celah hitam di kiri); sisa ruang hitam di kanan dipakai kolom zoom.
    Bukan object-fit: cover, karena pratinjau harus sama dengan foto 4:3 yang tersimpan. */
@@ -310,7 +317,7 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 /* Tangan kanan: panel di kanan, zoom di kiri. */
 .landscape-ui.panel-right { --side: calc(env(safe-area-inset-right) + 132px); }
 .landscape-ui.panel-right #stage { inset: 0 var(--side) 0 0; }
-.landscape-ui.panel-right #topbar { left: 0; right: var(--side); }
+.landscape-ui.panel-right #topbar { left: 0; right: var(--side); padding-right: 12px; }
 .landscape-ui.panel-right #level { left: calc((100% - var(--side)) / 2); }
 .landscape-ui.panel-right:not(.sideways) #video { object-position: 100% 50%; }
 .landscape-ui.panel-right #bottombar {
