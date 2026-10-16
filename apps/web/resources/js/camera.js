@@ -520,7 +520,7 @@ function layoutOverlay() {
   if (!vw || !vh) { el.overlay.replaceChildren(); return; }
 
   // Overlay ditempatkan tepat di atas area gambar video (object-fit: contain), mengikuti object-position
-  // (landscape: video rapat ke panel kanan, sisa ruang hitam di kiri untuk tombol zoom).
+  // (landscape: video rapat ke panel kiri, sisa ruang hitam di kanan untuk tombol zoom).
   const r = el.stage.getBoundingClientRect();
   const scale = Math.min(r.width / vw, r.height / vh);
   const dw = vw * scale;

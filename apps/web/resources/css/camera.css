@@ -246,21 +246,25 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 @media (prefers-reduced-motion: reduce) { #queueBtn { animation: none; } }
 #mirrorBtn[aria-pressed="true"], #focusBtn[aria-pressed="true"] { border-color: var(--guide); color: var(--guide); }
 
-/* Tata letak landscape: slot + tombol potret di kolom kanan, zoom di area hitam kiri, agar frame foto tidak tertutup.
+/* Tata letak landscape: slot + tombol potret di kolom kiri (dokter memotret dengan tangan kiri), zoom di area hitam
+   kanan, agar frame foto tidak tertutup.
    .landscape-ui dipasang camera.js saat layar landscape, ATAU saat HP dipegang landscape tetapi tampilan iOS tetap
    potret (kunci rotasi / rotasi tertunda) — kasus kedua ditandai .sideways: lapisan menu (#chrome) diputar sesuai
    posisi HP seperti app Kamera bawaan, sedangkan video tidak diputar (gambarnya sudah benar). */
-.landscape-ui { --side: calc(env(safe-area-inset-right) + 132px); }
-/* Video rapat ke panel kanan (tanpa celah hitam di kanan); sisa ruang hitam di kiri dipakai kolom zoom.
+.landscape-ui { --side: calc(env(safe-area-inset-left) + 132px); }
+.landscape-ui #stage { inset: 0 0 0 var(--side); }
+.landscape-ui #topbar { left: var(--side); right: 0; }
+.landscape-ui #level { left: calc(var(--side) + (100% - var(--side)) / 2); }
+/* Video rapat ke panel kiri (tanpa celah hitam di kiri); sisa ruang hitam di kanan dipakai kolom zoom.
    Bukan object-fit: cover, karena pratinjau harus sama dengan foto 4:3 yang tersimpan. */
-.landscape-ui:not(.sideways) #video { object-position: 100% 50%; }
+.landscape-ui:not(.sideways) #video { object-position: 0% 50%; }
 .landscape-ui #bottombar {
   top: 0;
-  left: auto;
+  right: auto;
   width: var(--side);
   display: flex;
   flex-direction: column;
-  padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 8px) 10px;
+  padding: calc(env(safe-area-inset-top) + 8px) 10px calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 10px);
   background: var(--panel);
 }
 /* Slot: dua kolom ringkas agar semua slot terlihat tanpa menggulir. Wajib = garis penuh, opsional = putus-putus. */
@@ -279,12 +283,12 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 .landscape-ui #slotChips small { display: none; }
 .landscape-ui #slotChips button.done { border-color: var(--ok); }
 .landscape-ui #slotChips button[aria-pressed="true"] { border-color: var(--guide); }
-/* Zoom: kolom vertikal di area hitam kiri (samping video), di bawah bar atas. */
+/* Zoom: kolom vertikal di area hitam kanan (samping video), di bawah bar atas. */
 .landscape-ui #zoomBar {
   position: fixed;
   top: calc(env(safe-area-inset-top) + 64px);
   bottom: calc(env(safe-area-inset-bottom) + 8px);
-  left: calc(env(safe-area-inset-left) + 8px);
+  right: calc(env(safe-area-inset-right) + 8px);
   z-index: 2;
   flex-direction: column;
   justify-content: center;
