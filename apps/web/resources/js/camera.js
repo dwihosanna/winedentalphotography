@@ -520,7 +520,7 @@ function layoutOverlay() {
   if (!vw || !vh) { el.overlay.replaceChildren(); return; }
 
   // Overlay ditempatkan tepat di atas area gambar video (object-fit: contain), mengikuti object-position
-  // (landscape: video rapat ke panel kiri, sisa ruang hitam di kanan untuk tombol zoom).
+  // (landscape: video rapat ke panel samping, sisa ruang hitam di sisi lain untuk tombol zoom).
   const r = el.stage.getBoundingClientRect();
   const scale = Math.min(r.width / vw, r.height / vh);
   const dw = vw * scale;
@@ -900,6 +900,11 @@ function applyLayoutMode() {
   html.classList.toggle('landscape-ui', screenLandscape || sideways);
   html.classList.toggle('sideways', sideways);
   html.style.setProperty('--rel', String(sideways ? state.turn.rel : 0));
+  // Panel di sisi yang berlawanan dengan kamera depan (seperti app Kamera bawaan): kamera depan di kanan = HP dipegang
+  // tangan kiri, panel kiri; kamera depan di kiri = tangan kanan, panel kanan. Sudut 90 = HP diputar berlawanan arah
+  // jarum jam (bagian atas HP, tempat kamera depan, di kiri).
+  const turned = norm(screenAngle() + (sideways ? state.turn.rel : 0));
+  html.classList.toggle('panel-right', (screenLandscape || sideways) && turned === 90);
 }
 
 /* ---------- Lain-lain ---------- */

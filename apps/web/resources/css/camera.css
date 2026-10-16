@@ -246,8 +246,9 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 @media (prefers-reduced-motion: reduce) { #queueBtn { animation: none; } }
 #mirrorBtn[aria-pressed="true"], #focusBtn[aria-pressed="true"] { border-color: var(--guide); color: var(--guide); }
 
-/* Tata letak landscape: slot + tombol potret di kolom kiri (dokter memotret dengan tangan kiri), zoom di area hitam
-   kanan, agar frame foto tidak tertutup.
+/* Tata letak landscape: slot + tombol potret di kolom samping, zoom di area hitam sisi lain, agar frame foto tidak
+   tertutup. Default kolom kiri (HP dipegang tangan kiri, kamera depan di kanan); .panel-right membalik untuk tangan
+   kanan (kamera depan di kiri). Sisi dipilih camera.js dari arah putar HP.
    .landscape-ui dipasang camera.js saat layar landscape, ATAU saat HP dipegang landscape tetapi tampilan iOS tetap
    potret (kunci rotasi / rotasi tertunda) — kasus kedua ditandai .sideways: lapisan menu (#chrome) diputar sesuai
    posisi HP seperti app Kamera bawaan, sedangkan video tidak diputar (gambarnya sudah benar). */
@@ -306,8 +307,21 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 .landscape-ui .rightCol { align-items: center; }
 .landscape-ui #slotCheck { display: none; }
 
+/* Tangan kanan: panel di kanan, zoom di kiri. */
+.landscape-ui.panel-right { --side: calc(env(safe-area-inset-right) + 132px); }
+.landscape-ui.panel-right #stage { inset: 0 var(--side) 0 0; }
+.landscape-ui.panel-right #topbar { left: 0; right: var(--side); }
+.landscape-ui.panel-right #level { left: calc((100% - var(--side)) / 2); }
+.landscape-ui.panel-right:not(.sideways) #video { object-position: 100% 50%; }
+.landscape-ui.panel-right #bottombar {
+  left: auto;
+  right: 0;
+  padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 8px) 10px;
+}
+.landscape-ui.panel-right #zoomBar { left: calc(env(safe-area-inset-left) + 8px); right: auto; }
+
 /* HP landscape, tampilan potret: putar lapisan menu; elemen fixed di dalamnya mengikuti kotak #chrome yang diputar. */
-.sideways #stage { inset: 0; }
+.landscape-ui.sideways #stage { inset: 0; }
 .sideways #chrome {
   position: fixed;
   top: 50%;
