@@ -15,6 +15,8 @@ final class PhotoEdit
 {
     public const MAX_STRAIGHTEN = 15;
 
+    public const JPEG_QUALITY = 95;
+
     /**
      * @param  array<string, mixed>  $input
      * @return array{rotate: int, flip_h: bool, flip_v: bool, straighten: float, crop: array{x: float, y: float, w: float, h: float}|null, auto_flip: bool}
@@ -69,7 +71,6 @@ final class PhotoEdit
             if (! $image instanceof GdImage) {
                 throw ValidationException::withMessages(['params' => 'Foto ini tidak bisa diedit.']);
             }
-            imagesetinterpolation($image, IMG_BICUBIC);
             $image = Thumbnail::orient($image, JpegMetadata::orientationOf($originalBytes));
 
             if ($params['rotate']) {
@@ -93,8 +94,9 @@ final class PhotoEdit
                 ]);
             }
 
+            // Crop memotong piksel asli 1:1 (tanpa diperkecil/diperbesar); kualitas tinggi agar hasil tetap tajam saat di-zoom.
             ob_start();
-            imagejpeg($image, null, 92);
+            imagejpeg($image, null, self::JPEG_QUALITY);
 
             return ob_get_clean();
         } finally {
@@ -109,6 +111,8 @@ final class PhotoEdit
         $h = imagesy($image);
         [$cw, $ch] = self::inscribed($w, $h, $degrees);
 
+        // Interpolasi tidak ikut ke gambar baru hasil putar/orientasi sebelumnya, jadi diset di sini.
+        imagesetinterpolation($image, IMG_BICUBIC);
         $rotated = imagerotate($image, -$degrees, imagecolorallocate($image, 255, 255, 255));
 
         return imagecrop($rotated, [

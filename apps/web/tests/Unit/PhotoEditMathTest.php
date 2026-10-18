@@ -34,6 +34,28 @@ class PhotoEditMathTest extends TestCase
         }
     }
 
+    public function test_crop_keeps_original_pixels_without_resampling(): void
+    {
+        // Garis vertikal selebar 1 piksel: diperkecil/diperbesar sedikit saja garisnya langsung kabur jadi abu-abu.
+        $src = imagecreatetruecolor(400, 300);
+        for ($x = 0; $x < 400; $x++) {
+            imageline($src, $x, 0, $x, 299, $x % 2 ? 0xFFFFFF : 0x000000);
+        }
+        ob_start();
+        imagepng($src);
+        $png = ob_get_clean();
+
+        $out = PhotoEdit::render($png, PhotoEdit::normalize(['crop' => ['x' => 0.1025, 'y' => 0.2, 'w' => 0.25, 'h' => 0.25]]));
+
+        $this->assertSame([100, 75], array_slice(getimagesizefromstring($out), 0, 2));
+        $img = imagecreatefromstring($out);
+        for ($x = 1; $x < 99; $x++) {
+            // Kolom 0 hasil = kolom 41 asli (ganjil = putih).
+            $luma = imagecolorat($img, $x, 37) & 0xFF;
+            $x % 2 ? $this->assertLessThan(60, $luma) : $this->assertGreaterThan(195, $luma);
+        }
+    }
+
     public function test_rotate_is_applied_before_flip(): void
     {
         // 90° searah jarum jam: atas (merah) pindah ke kanan; lalu balik horizontal: merah ke kiri.

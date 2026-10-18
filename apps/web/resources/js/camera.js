@@ -8,7 +8,7 @@ const el = Object.fromEntries([
   'slotChips', 'zoomBar', 'lastThumb', 'shutter', 'focusBtn', 'mirrorBtn', 'queueBtn', 'startScreen', 'startBtn',
   'startNote', 'panel', 'cameraSelect', 'opacity', 'opacityOut', 'levelBtn', 'toast',
   'lastBox', 'gallery', 'galleryBack', 'galleryTitle', 'galleryClose', 'galleryGrid', 'galleryView', 'galleryImg',
-  'galleryPrev', 'galleryNext', 'galleryRetake',
+  'galleryPrev', 'galleryNext', 'galleryRetake', 'orientBtn',
 ].map((id) => [id, $(id)]));
 
 const config = JSON.parse($('camera-config').textContent);
@@ -38,6 +38,9 @@ const state = {
   level: { on: false, roll: null, pitch: null, g: null },
   // Rotasi fisik HP dari sensor gravitasi. rel = selisih dengan rotasi layar (kunci rotasi aktif).
   turn: { sign: 0, hand: 0, phys: null, rel: 0 },
+  // Orientasi foto dikunci pengguna (tombol di bar atas), bukan ikut sensor: 'portrait' (default) atau 'landscape'.
+  orient: 'portrait',
+  landscapeDir: 90, // arah landscape (90/-90); hanya berganti bila HP jelas diputar ke sisi sebaliknya
   geometryAt: 0, // waktu terakhir layar/video berputar (capture menunggu sampai stabil)
   lastLandscapeScr: null, // arah landscape layar terakhir (90/-90), untuk bingkai video yang belum ikut berputar
   lastFrameAt: 0, // waktu frame video terakhir tampil (pengawas kamera membeku)
@@ -58,6 +61,7 @@ function init() {
   const prefs = loadPrefs();
   el.opacity.value = prefs.opacity || '0.9';
   state.zoomBySlot = prefs.zoomBySlot || {};
+  state.orient = prefs.orient === 'landscape' ? 'landscape' : 'portrait';
   for (const s of state.slots) state.mirrorBySlot[s.code] = !!s.mirror?.default;
   el.cameraSelect.replaceChildren(...Object.entries(LENS_AUTO).map(([v, t]) => new Option(t, v)));
   el.cameraSelect.value = LENS_AUTO[prefs.lens] ? prefs.lens : LENS_DEFAULT;
@@ -69,7 +73,7 @@ function init() {
     return;
   }
 
-  applyLayoutMode();
+  applyOrient();
   selectSlot(config.start);
   renderChips();
   bind();
@@ -78,6 +82,12 @@ function init() {
 function bind() {
   el.startBtn.addEventListener('click', onStart);
   el.menuBtn.addEventListener('click', () => el.panel.showModal());
+  el.orientBtn.addEventListener('click', () => {
+    state.orient = state.orient === 'landscape' ? 'portrait' : 'landscape';
+    state.geometryAt = performance.now(); // tata letak berputar: tunggu sebelum memotret
+    savePrefs();
+    applyOrient();
+  });
   el.shutter.addEventListener('click', capture);
   el.mirrorBtn.addEventListener('click', () => {
     state.mirrorBySlot[state.slot.code] = !state.mirrorBySlot[state.slot.code];
@@ -109,6 +119,7 @@ function bind() {
   window.addEventListener('online', () => processQueue(true));
   const geometryChanged = () => {
     state.geometryAt = performance.now();
+    applyTurn();
     applyLayoutMode();
     layoutOverlay();
     setTimeout(checkFrozen, SETTLE_MS + 300); // kamera iOS sering membeku tepat saat HP diputar
@@ -635,17 +646,15 @@ async function settleGeometry() {
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
 }
 
-/* Rotasi foto relatif terhadap bingkai video saat ini, dari posisi fisik HP (gravitasi), bukan dari tampilan.
-   Tampilan PWA iOS kadang tidak ikut berputar (atau terlambat) saat foto diambil berurutan; dengan cara ini foto
-   intraoral yang dipegang landscape tetap tersimpan landscape. Tanpa sensor gerak: ikuti tampilan seperti biasa. */
+/* Rotasi foto relatif terhadap bingkai video saat ini, dari orientasi yang dikunci pengguna (Potret/Landscape),
+   bukan dari tampilan: tampilan PWA iOS kadang tidak ikut berputar (atau terlambat) saat foto diambil berurutan. */
 function captureTurn(vw, vh) {
-  const t = state.turn;
-  if (t.phys == null) return t.rel;
+  const target = targetPhys();
   const scr = norm(screenAngle());
   if (Math.abs(scr) === 90) state.lastLandscapeScr = scr;
   // Bingkai landscape padahal layar portrait (rotasi belum selesai): pakai arah landscape terakhir.
-  const frame = vw > vh ? (Math.abs(scr) === 90 ? scr : (state.lastLandscapeScr ?? (Math.abs(t.phys) === 90 ? t.phys : 90))) : 0;
-  const rel = norm(t.phys - frame);
+  const frame = vw > vh ? (Math.abs(scr) === 90 ? scr : (state.lastLandscapeScr ?? (Math.abs(target) === 90 ? target : 90))) : 0;
+  const rel = norm(target - frame);
   return Math.abs(rel) === 90 ? rel : 0; // HP terbalik: abaikan
 }
 
@@ -824,7 +833,7 @@ function onMotion(e) {
 
   const mag = Math.hypot(g.x, g.y, g.z) || 1;
   updateTurn(g, mag);
-  const landscape = Math.abs(state.turn.phys ?? screenAngle()) === 90;
+  const landscape = Math.abs(targetPhys()) === 90;
   const down = landscape ? Math.abs(g.x) : Math.abs(g.y);
   const side = landscape ? g.y : g.x;
   state.level.roll = deg(Math.atan2(side, down));                       // horizon miring
@@ -881,14 +890,37 @@ function updateTurn(g, mag) {
   const now = phys(t.sign, t.hand || 1);
   if (now == null) return;
   t.phys = now;
-  const rel = norm(now - scr);
-  const newRel = Math.abs(rel) === 90 ? rel : 0; // HP terbalik: abaikan
-  if (newRel !== t.rel) {
-    t.rel = newRel;
-    applyLayoutMode();
-    applyMirrorPreview();
-    layoutOverlay();
-  }
+  applyTurn();
+}
+
+/* Posisi HP yang dipakai untuk tampilan dan foto: dikunci ke pilihan pengguna agar tidak berputar sendiri
+   saat HP sedikit miring. Sensor hanya menentukan arah landscape (kiri/kanan), yang baru berganti bila HP
+   benar-benar diputar ke sisi sebaliknya. */
+function targetPhys() {
+  if (state.orient === 'portrait') return 0;
+  if (Math.abs(state.turn.phys) === 90) state.landscapeDir = state.turn.phys;
+  return state.landscapeDir;
+}
+
+function applyTurn() {
+  const rel = norm(targetPhys() - norm(screenAngle()));
+  const newRel = Math.abs(rel) === 90 ? rel : 0; // layar terbalik: abaikan
+  if (newRel === state.turn.rel) return;
+  state.turn.rel = newRel;
+  applyLayoutMode();
+  applyMirrorPreview();
+  layoutOverlay();
+}
+
+function applyOrient() {
+  const landscape = state.orient === 'landscape';
+  el.orientBtn.setAttribute('aria-pressed', String(landscape));
+  el.orientBtn.querySelector('span').textContent = landscape ? 'Landscape' : 'Potret';
+  // Android (layar penuh/PWA) bisa mengunci rotasi layar; iOS tidak, jadi menu diputar lewat .sideways.
+  screen.orientation?.lock?.(landscape ? 'landscape' : 'portrait').catch(() => {});
+  applyTurn();
+  applyLayoutMode();
+  layoutOverlay();
 }
 
 /* Tata letak landscape bila layar landscape, atau bila HP dipegang landscape tetapi tampilan iOS tetap potret
@@ -921,6 +953,7 @@ function savePrefs() {
       opacity: el.opacity.value,
       zoomBySlot: state.zoomBySlot,
       lens: LENS_AUTO[el.cameraSelect.value] ? el.cameraSelect.value : undefined,
+      orient: state.orient,
     }));
   } catch { /* abaikan */ }
 }

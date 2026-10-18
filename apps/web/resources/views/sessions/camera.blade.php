@@ -32,6 +32,11 @@
             <h1 id="slotTitle">Memuat slot</h1>
             <p id="slotCheck"></p>
         </div>
+        {{-- Kunci orientasi: tampilan dan foto tidak ikut berputar saat HP sedikit miring. --}}
+        <button id="orientBtn" class="pill" type="button" aria-pressed="false" aria-label="Kunci orientasi landscape" title="Ketuk untuk ganti Potret / Landscape">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/></svg>
+            <span>Potret</span>
+        </button>
         <button id="menuBtn" class="pill" type="button" aria-label="Pengaturan" title="Pengaturan">
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
@@ -83,7 +88,7 @@
         <div class="startCard">
             <h2>{{ $patient->name }}</h2>
             <p>{{ $session->stageLabel() }} · {{ $session->session_date->format('d-m-Y') }}</p>
-            <p class="muted">Garis bantu mengikuti posisi HP. Foto langsung diunggah ke server dan tidak disimpan di galeri HP.</p>
+            <p class="muted">Orientasi foto dikunci: Potret (default) atau Landscape lewat tombol di atas. Foto langsung diunggah ke server dan tidak disimpan di galeri HP.</p>
             <button id="startBtn" class="primary" type="button">Mulai kamera</button>
             <p id="startNote" class="muted"></p>
             <a class="muted" href="{{ route('sessions.upload', $session) }}">Atau unggah foto dari galeri</a>

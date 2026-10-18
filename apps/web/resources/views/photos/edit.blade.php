@@ -14,9 +14,10 @@
         <p class="notice" data-auto-flip-note hidden>Dibalik otomatis karena slot ini biasanya dipotret lewat cermin. Ketuk tombol balik untuk mematikan.</p>
 
         <div class="editor-stage" data-stage>
-            <canvas data-canvas aria-label="Pratinjau edit; seret sudut kotak untuk crop"></canvas>
+            <canvas data-canvas aria-label="Pratinjau edit; cubit untuk zoom, geser foto, tarik sudut bingkai untuk crop"></canvas>
             <p class="muted" data-loading>Memuat foto…</p>
         </div>
+        <p class="muted editor-hint">Cubit untuk zoom, geser untuk memindah foto, tarik sudut bingkai untuk crop.</p>
 
         <div class="editor-tools">
             <button class="btn btn-sm btn-secondary" type="button" data-action="rotate-left" aria-label="Putar kiri 90°">↺ 90°</button>
