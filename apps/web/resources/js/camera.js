@@ -40,7 +40,8 @@ const state = {
   turn: { sign: 0, hand: 0, phys: null, rel: 0 },
   // Orientasi foto dikunci pengguna (tombol di bar atas), bukan ikut sensor: 'portrait' (default) atau 'landscape'.
   orient: 'portrait',
-  landscapeDir: 90, // arah landscape (90/-90); hanya berganti bila HP jelas diputar ke sisi sebaliknya
+  landscapeDir: 90, // arah landscape: 90 = HP diputar berlawanan jarum jam (↺), -90 = searah jarum jam (↻)
+  levelWanted: false, // waterpass pernah diaktifkan: diminta lagi saat kamera dibuka
   geometryAt: 0, // waktu terakhir layar/video berputar (capture menunggu sampai stabil)
   lastLandscapeScr: null, // arah landscape layar terakhir (90/-90), untuk bingkai video yang belum ikut berputar
   lastFrameAt: 0, // waktu frame video terakhir tampil (pengawas kamera membeku)
@@ -62,6 +63,8 @@ function init() {
   el.opacity.value = prefs.opacity || '0.9';
   state.zoomBySlot = prefs.zoomBySlot || {};
   state.orient = prefs.orient === 'landscape' ? 'landscape' : 'portrait';
+  state.landscapeDir = prefs.landscapeDir === -90 ? -90 : 90;
+  state.levelWanted = !!prefs.level;
   for (const s of state.slots) state.mirrorBySlot[s.code] = !!s.mirror?.default;
   el.cameraSelect.replaceChildren(...Object.entries(LENS_AUTO).map(([v, t]) => new Option(t, v)));
   el.cameraSelect.value = LENS_AUTO[prefs.lens] ? prefs.lens : LENS_DEFAULT;
@@ -77,13 +80,35 @@ function init() {
   selectSlot(config.start);
   renderChips();
   bind();
+  autoStart();
+}
+
+/* iOS meminta izin sensor gerak lewat dialog yang hanya boleh dari ketukan; perangkat lain tidak. */
+const motionNeedsPrompt = () => typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
+
+/* Izin kamera sudah diberikan: langsung nyalakan kamera tanpa layar "Mulai kamera". Bila waterpass dipakai di iOS,
+   layar mulai tetap tampil karena izin sensor gerak butuh ketukan. */
+async function autoStart() {
+  if (state.levelWanted && motionNeedsPrompt()) return;
+  try {
+    const status = await navigator.permissions?.query({ name: 'camera' });
+    if (status?.state === 'granted' && !state.started) onStart();
+  } catch { /* browser tidak mendukung query izin kamera: tetap lewat tombol */ }
 }
 
 function bind() {
   el.startBtn.addEventListener('click', onStart);
   el.menuBtn.addEventListener('click', () => el.panel.showModal());
   el.orientBtn.addEventListener('click', () => {
-    state.orient = state.orient === 'landscape' ? 'portrait' : 'landscape';
+    // Potret → Landscape ↺ → Landscape ↻ → Potret. Arah dipilih manual agar tidak perlu izin sensor gerak.
+    if (state.orient === 'portrait') {
+      state.orient = 'landscape';
+      state.landscapeDir = 90;
+    } else if (state.landscapeDir === 90) {
+      state.landscapeDir = -90;
+    } else {
+      state.orient = 'portrait';
+    }
     state.geometryAt = performance.now(); // tata letak berputar: tunggu sebelum memotret
     savePrefs();
     applyOrient();
@@ -109,7 +134,7 @@ function bind() {
   el.cameraSelect.addEventListener('change', () => { state.autoDeviceId = null; savePrefs(); startCamera(); });
   el.focusBtn.addEventListener('click', () => (state.focus.locked ? unlockFocus() : lockFocus()));
   el.opacity.addEventListener('input', () => { applyOpacity(); savePrefs(); });
-  el.levelBtn.addEventListener('click', enableLevel);
+  el.levelBtn.addEventListener('click', () => (state.level.on ? disableLevel() : enableLevel()));
   el.doneBtn.addEventListener('click', (e) => {
     if (state.queue.length && !confirm(`${state.queue.length} foto belum terunggah dan akan hilang. Tetap keluar?`)) e.preventDefault();
   });
@@ -136,9 +161,10 @@ async function onStart() {
   el.startScreen.hidden = true;
   if (state.started) return;
   state.started = true;
-  // Sensor gerak dipakai untuk waterpass, rotasi garis bantu, dan orientasi foto; iOS hanya mengizinkan dari
-  // ketukan pengguna. Ditunggu dulu sebelum kamera: dua dialog izin bersamaan di iOS bisa saling menimpa.
-  await enableLevel();
+  // Sensor gerak hanya untuk waterpass (orientasi dikunci tombol Potret/Landscape). Di iOS izinnya berupa dialog,
+  // jadi hanya diminta bila waterpass pernah diaktifkan. Ditunggu dulu sebelum kamera: dua dialog bersamaan bisa
+  // saling menimpa.
+  if (!motionNeedsPrompt() || state.levelWanted) await enableLevel();
   await startCamera();
   watchFrames();
 }
@@ -803,21 +829,34 @@ function flash() {
 
 async function enableLevel() {
   try {
-    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    if (motionNeedsPrompt()) {
       const permission = await DeviceMotionEvent.requestPermission();
       if (permission !== 'granted') {
-        toast('Izin sensor gerak ditolak: foto landscape hanya benar bila layar ikut berputar. Izinkan lewat Pengaturan Safari, lalu buka ulang kamera.');
+        toast('Izin sensor gerak ditolak: waterpass tidak bisa dipakai. Izinkan lewat Pengaturan Safari, lalu buka ulang kamera.');
         return;
       }
     }
     window.addEventListener('devicemotion', onMotion);
     state.level.on = true;
-    el.levelBtn.disabled = true;
-    el.levelBtn.textContent = 'Waterpass aktif';
+    if (motionNeedsPrompt()) {
+      state.levelWanted = true;
+      savePrefs();
+    }
+    el.levelBtn.textContent = 'Matikan waterpass';
     el.level.hidden = !state.slot?.level;
   } catch (e) {
     toast(`Waterpass tidak bisa diaktifkan: ${e.message}`);
   }
+}
+
+/* Matikan waterpass: kamera berikutnya tidak lagi menampilkan dialog izin sensor gerak. */
+function disableLevel() {
+  window.removeEventListener('devicemotion', onMotion);
+  state.level.on = false;
+  state.levelWanted = false;
+  savePrefs();
+  el.levelBtn.textContent = 'Aktifkan waterpass';
+  el.level.hidden = true;
 }
 
 let levelFrame = 0;
@@ -893,13 +932,10 @@ function updateTurn(g, mag) {
   applyTurn();
 }
 
-/* Posisi HP yang dipakai untuk tampilan dan foto: dikunci ke pilihan pengguna agar tidak berputar sendiri
-   saat HP sedikit miring. Sensor hanya menentukan arah landscape (kiri/kanan), yang baru berganti bila HP
-   benar-benar diputar ke sisi sebaliknya. */
+/* Posisi HP yang dipakai untuk tampilan dan foto: dikunci ke pilihan pengguna (termasuk arah landscape),
+   tidak dari sensor, agar tidak berputar sendiri saat HP sedikit miring. */
 function targetPhys() {
-  if (state.orient === 'portrait') return 0;
-  if (Math.abs(state.turn.phys) === 90) state.landscapeDir = state.turn.phys;
-  return state.landscapeDir;
+  return state.orient === 'portrait' ? 0 : state.landscapeDir;
 }
 
 function applyTurn() {
@@ -915,7 +951,9 @@ function applyTurn() {
 function applyOrient() {
   const landscape = state.orient === 'landscape';
   el.orientBtn.setAttribute('aria-pressed', String(landscape));
-  el.orientBtn.querySelector('span').textContent = landscape ? 'Landscape' : 'Potret';
+  const label = landscape ? `Landscape ${state.landscapeDir === 90 ? '↺' : '↻'}` : 'Potret';
+  el.orientBtn.querySelector('span').textContent = label;
+  el.orientBtn.setAttribute('aria-label', `Orientasi: ${landscape ? `landscape, HP diputar ${state.landscapeDir === 90 ? 'ke kiri' : 'ke kanan'}` : 'potret'}. Ketuk untuk ganti.`);
   // Android (layar penuh/PWA) bisa mengunci rotasi layar; iOS tidak, jadi menu diputar lewat .sideways.
   screen.orientation?.lock?.(landscape ? 'landscape' : 'portrait').catch(() => {});
   applyTurn();
@@ -955,6 +993,8 @@ function savePrefs() {
       zoomBySlot: state.zoomBySlot,
       lens: LENS_AUTO[el.cameraSelect.value] ? el.cameraSelect.value : undefined,
       orient: state.orient,
+      landscapeDir: state.landscapeDir,
+      level: state.levelWanted,
     }));
   } catch { /* abaikan */ }
 }

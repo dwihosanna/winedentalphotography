@@ -33,7 +33,7 @@
             <p id="slotCheck"></p>
         </div>
         {{-- Kunci orientasi: tampilan dan foto tidak ikut berputar saat HP sedikit miring. --}}
-        <button id="orientBtn" class="pill" type="button" aria-pressed="false" aria-label="Kunci orientasi landscape" title="Ketuk untuk ganti Potret / Landscape">
+        <button id="orientBtn" class="pill" type="button" aria-pressed="false" title="Ketuk untuk ganti: Potret → Landscape ↺ → Landscape ↻">
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/></svg>
             <span>Potret</span>
         </button>
