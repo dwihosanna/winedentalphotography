@@ -47,7 +47,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/pasien/{patient}/sesi/baru', [PhotoSessionController::class, 'create'])->name('sessions.create');
         Route::post('/pasien/{patient}/sesi', [PhotoSessionController::class, 'store'])->name('sessions.store');
         Route::get('/sesi/{session}', [PhotoSessionController::class, 'show'])->name('sessions.show');
+        Route::get('/sesi/{session}/ubah', [PhotoSessionController::class, 'edit'])->name('sessions.edit');
         Route::put('/sesi/{session}', [PhotoSessionController::class, 'update'])->name('sessions.update');
+        Route::delete('/sesi/{session}', [PhotoSessionController::class, 'destroy'])->name('sessions.destroy');
 
         Route::get('/sesi/{session}/kamera', [PhotoController::class, 'camera'])->name('sessions.camera');
         Route::get('/sesi/{session}/unggah', [PhotoController::class, 'upload'])->name('sessions.upload');

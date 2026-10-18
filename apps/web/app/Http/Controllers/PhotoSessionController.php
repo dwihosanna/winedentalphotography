@@ -12,6 +12,7 @@ use App\Support\CurrentWorkspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /** Kasus + sesi foto (FR-04, FR-05, FR-09) dan Arsip pasien (FR-33). */
@@ -89,21 +90,66 @@ class PhotoSessionController extends Controller
         ]);
     }
 
-    /** Keterangan dan tanggal sesi bisa diubah (FR-33); tahap tidak, karena menentukan slot. */
+    public function edit(PhotoSession $session): View
+    {
+        $patient = $session->orthoCase->patient;
+        $this->authorize('view', $patient);
+
+        return view('sessions.edit', [
+            'session' => $session,
+            'patient' => $patient,
+            'stages' => $session->orthoCase->kind->stages(),
+            'deletable' => $session->isDeletable(),
+        ]);
+    }
+
+    /**
+     * Tahap, tanggal, dan keterangan sesi bisa diubah (FR-33). Tahap dibatasi sesuai jenis kasus; foto tetap di slotnya
+     * (semua tahap memakai kode slot yang sama), hanya aturan wajib dan status lengkap/draft yang dihitung ulang.
+     */
     public function update(Request $request, PhotoSession $session): RedirectResponse
     {
         $this->authorize('view', $session->orthoCase->patient);
 
         $data = $request->validate([
+            'stage' => ['sometimes', 'required', Rule::enum(Stage::class)->only($session->orthoCase->kind->stages())],
             'session_date' => ['required', 'date', 'before_or_equal:today', 'after:2000-01-01'],
             'notes' => ['nullable', 'string', 'max:1000'],
-        ]);
-        $session->fill($data);
-        if ($session->isDirty()) {
-            AuditLog::record('update', $session, ['fields' => array_keys($session->getDirty())]);
-            $session->save();
+        ], ['stage.enum' => 'Tahap ini tidak berlaku untuk jenis kasus sesi ini.']);
+
+        DB::transaction(function () use ($session, $data) {
+            $session->fill($data);
+            if ($session->isDirty('stage')) {
+                $session->control_number = $session->stage === Stage::Control ? $session->orthoCase->nextControlNumber() : null;
+            }
+            if ($session->isDirty()) {
+                AuditLog::record('update', $session, ['fields' => array_keys($session->getDirty())]);
+                $stageChanged = $session->isDirty('stage');
+                $session->save();
+                if ($stageChanged) {
+                    $session->refreshStatus();
+                }
+            }
+        });
+
+        return redirect()->route('sessions.index', $session->orthoCase->patient_id)->with('status', 'Sesi disimpan.');
+    }
+
+    /** Hapus sesi yang salah dibuat; hanya sesi kosong yang tidak dipakai report (lihat PhotoSession::isDeletable). */
+    public function destroy(PhotoSession $session): RedirectResponse
+    {
+        $patient = $session->orthoCase->patient;
+        $this->authorize('view', $patient);
+
+        if (! $session->isDeletable()) {
+            return back()->withErrors(['session' => 'Sesi yang sudah berisi foto atau dipakai report tidak bisa dihapus. Ubah tahap atau tanggalnya bila salah.']);
         }
 
-        return redirect()->route('sessions.show', $session)->with('status', 'Sesi disimpan.');
+        DB::transaction(function () use ($session) {
+            AuditLog::record('delete', $session, ['stage' => $session->stage->value, 'session_date' => $session->session_date->toDateString()]);
+            $session->delete();
+        });
+
+        return redirect()->route('sessions.index', $patient)->with('status', 'Sesi dihapus.');
     }
 }

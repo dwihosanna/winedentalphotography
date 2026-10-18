@@ -70,22 +70,7 @@
             @endforeach
         </ul>
 
-        <details class="card">
-            <summary>Ubah tanggal atau keterangan sesi</summary>
-            <form class="form" method="POST" action="{{ route('sessions.update', $session) }}">
-                @csrf
-                @method('PUT')
-                <div class="field">
-                    <label for="session_date">Tanggal sesi</label>
-                    <input id="session_date" class="input" type="date" name="session_date" value="{{ $session->session_date->format('Y-m-d') }}" max="{{ now()->format('Y-m-d') }}" required>
-                </div>
-                <div class="field">
-                    <label for="notes">Keterangan</label>
-                    <textarea id="notes" class="input" name="notes" rows="3" maxlength="1000">{{ old('notes', $session->notes) }}</textarea>
-                </div>
-                <button class="btn btn-primary" type="submit">Simpan</button>
-            </form>
-        </details>
+        <p><a class="btn btn-secondary btn-block" href="{{ route('sessions.edit', $session) }}">Ubah tahap, tanggal, atau keterangan sesi</a></p>
     </div>
 @endsection
 

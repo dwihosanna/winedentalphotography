@@ -393,6 +393,52 @@ class SessionPhotoTest extends TestCase
         $this->actingAs($dentist)->get("/sesi/{$session->id}/unggah")->assertOk()->assertSee('RX-01');
     }
 
+    public function test_stage_can_be_changed_and_controls_are_renumbered(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        $case = $this->in($workspace, fn () => OrthoCase::factory()->create());
+        $initial = $this->sessionIn($workspace, Stage::Initial, ['ortho_case_id' => $case->id, 'session_date' => '2026-01-01']);
+        $control = $this->sessionIn($workspace, Stage::Control, ['ortho_case_id' => $case->id, 'session_date' => '2026-03-01']);
+        $this->in($workspace, fn () => Photo::factory()->create(['photo_session_id' => $initial->id, 'slot_code' => 'IO-01']));
+
+        $this->actingAs($dentist)->get("/sesi/{$initial->id}/ubah")->assertOk()->assertSee('Insersi')->assertDontSee('Sebelum');
+
+        // Awal → Kontrol: jadi Kontrol ke-1 (tanggal lebih awal), kontrol lama bergeser ke-2.
+        $this->actingAs($dentist)->put("/sesi/{$initial->id}", ['stage' => 'control', 'session_date' => '2026-01-01'])
+            ->assertRedirect("/pasien/{$case->patient_id}/arsip");
+        $this->assertSame(1, $initial->fresh()->control_number);
+        $this->assertSame(2, $control->fresh()->control_number);
+        $this->assertSame(1, $initial->fresh()->photos()->count());
+
+        // Kontrol → Insersi: nomor dilepas, sisa kontrol dinomori ulang.
+        $this->actingAs($dentist)->put("/sesi/{$initial->id}", ['stage' => 'insertion', 'session_date' => '2026-01-01'])->assertRedirect();
+        $this->assertNull($initial->fresh()->control_number);
+        $this->assertSame(1, $control->fresh()->control_number);
+        $this->assertTrue(AuditLog::where('action', 'update')->where('entity_id', $initial->id)->exists());
+
+        // Tahap non-ortho tidak berlaku untuk kasus ortho.
+        $this->actingAs($dentist)->put("/sesi/{$initial->id}", ['stage' => 'before', 'session_date' => '2026-01-01'])->assertSessionHasErrors('stage');
+    }
+
+    public function test_only_empty_session_can_be_deleted(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        $case = $this->in($workspace, fn () => OrthoCase::factory()->create());
+        $empty = $this->sessionIn($workspace, Stage::Control, ['ortho_case_id' => $case->id, 'session_date' => '2026-01-01', 'control_number' => 1]);
+        $later = $this->sessionIn($workspace, Stage::Control, ['ortho_case_id' => $case->id, 'session_date' => '2026-02-01', 'control_number' => 2]);
+        $this->in($workspace, fn () => Photo::factory()->create(['photo_session_id' => $later->id]));
+
+        $this->actingAs($dentist)->get("/pasien/{$case->patient_id}/arsip")->assertSee("/sesi/{$empty->id}/ubah");
+
+        $this->actingAs($dentist)->delete("/sesi/{$later->id}")->assertSessionHasErrors('session');
+        $this->assertNotNull($later->fresh());
+
+        $this->actingAs($dentist)->delete("/sesi/{$empty->id}")->assertRedirect("/pasien/{$case->patient_id}/arsip");
+        $this->assertNull(PhotoSession::withoutGlobalScopes()->find($empty->id));
+        $this->assertSame(1, $later->fresh()->control_number);
+        $this->assertTrue(AuditLog::where('action', 'delete')->where('entity_id', $empty->id)->exists());
+    }
+
     public function test_session_of_another_workspace_is_not_found(): void
     {
         [$dentist] = $this->dentistWithWorkspace();
@@ -403,5 +449,7 @@ class SessionPhotoTest extends TestCase
             $this->actingAs($dentist)->get($url)->assertNotFound();
         }
         $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", ['file' => $this->jpeg(), 'slot_code' => 'IO-01', 'source' => 'camera'])->assertNotFound();
+        $this->actingAs($dentist)->get("/sesi/{$session->id}/ubah")->assertNotFound();
+        $this->actingAs($dentist)->delete("/sesi/{$session->id}")->assertNotFound();
     }
 }

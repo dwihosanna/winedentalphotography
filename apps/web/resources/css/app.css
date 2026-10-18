@@ -128,6 +128,16 @@ details.card[open] > summary { margin-bottom: var(--space-3); }
 /* Keterangan sesi bisa multi-baris (textarea): baris baru tetap tampil. */
 .archive-row .note, .session-notes { white-space: pre-line; }
 
+/* Tombol ubah/hapus sesi di pojok kanan bawah baris arsip (di luar link baris, karena link tidak boleh bersarang). */
+.archive-item { position: relative; }
+.archive-item .archive-row { min-height: calc(var(--tap) * 1.75); }
+.archive-item .count { min-width: var(--tap); text-align: right; }
+.archive-edit { position: absolute; right: var(--space-2); bottom: var(--space-1); color: var(--muted); }
+.archive-edit svg { width: 20px; height: 20px; }
+.archive-status { margin: var(--space-3) var(--space-4); }
+.danger-zone { margin-top: var(--space-5); }
+.btn-danger:disabled { opacity: .5; }
+
 /* Penampil PDF dalam aplikasi (report, rontgen PDF). */
 .pdf-page { background: var(--surface-2); }
 .pdf-pages { display: grid; gap: var(--space-3); padding: var(--space-3); max-width: 900px; margin: 0 auto; }
