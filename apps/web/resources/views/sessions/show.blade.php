@@ -34,15 +34,14 @@
             <a class="btn btn-primary" href="{{ route('sessions.camera', $session) }}">Buka kamera</a>
             <a class="btn btn-secondary" href="{{ route('sessions.upload', $session) }}">Unggah banyak foto</a>
             @include('partials.timestamp-toggle')
+            @if ($photos->isNotEmpty())
+                <form method="POST" action="{{ route('photos.destroy-all', $session) }}" onsubmit="return confirm('Hapus SEMUA foto di sesi ini ({{ $photos->count() }} slot)? Foto terhapus permanen dan tidak bisa dikembalikan.')">
+                    @csrf
+                    @method('DELETE')
+                    <button class="icon-btn icon-btn-danger" type="submit" aria-label="Hapus semua foto" title="Hapus semua foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
+                </form>
+            @endif
         </div>
-
-        @if ($photos->isNotEmpty())
-            <form class="row-actions" method="POST" action="{{ route('photos.destroy-all', $session) }}" onsubmit="return confirm('Hapus SEMUA foto di sesi ini ({{ $photos->count() }} slot)? Foto terhapus permanen dan tidak bisa dikembalikan.')">
-                @csrf
-                @method('DELETE')
-                <button class="btn btn-sm btn-danger" type="submit">Hapus semua foto</button>
-            </form>
-        @endif
 
         <ul class="slot-grid">
             @foreach ($slots as $slot)
@@ -77,7 +76,7 @@
                             <form method="POST" action="{{ route('photos.destroy', $photo) }}" onsubmit="return confirm('Hapus foto {{ $slot->slot_code }}? Foto terhapus permanen dan tidak bisa dikembalikan.')">
                                 @csrf
                                 @method('DELETE')
-                                <button class="btn btn-sm btn-ghost danger-text" type="submit">Hapus</button>
+                                <button class="icon-btn icon-btn-sm icon-btn-danger" type="submit" aria-label="Hapus foto {{ $slot->slot_code }}" title="Hapus foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
                             </form>
                         @endif
                     </div>
