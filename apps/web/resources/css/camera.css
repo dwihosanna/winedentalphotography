@@ -1,6 +1,12 @@
 /* Layar kamera (FR-06), di-port dari poc/camera/style.css v2.5. Sengaja tidak memakai tema merek:
    latar hitam netral dan garis bantu amber agar warna gusi/gigi di preview tidak terpengaruh. */
 :root {
+  /* Jarak aman layar (notch, Dynamic Island, home indicator) per sisi. Di .sideways lapisan menu diputar 90°,
+     jadi sisi-sisinya dipetakan ulang (lihat di bawah) agar tombol tidak masuk ke area status bar. */
+  --sa-t: env(safe-area-inset-top);
+  --sa-r: env(safe-area-inset-right);
+  --sa-b: env(safe-area-inset-bottom);
+  --sa-l: env(safe-area-inset-left);
   --viewfinder: #000000;
   --panel: #1c1f22;
   --panel-2: #272b2f;
@@ -79,7 +85,7 @@ button.danger { color: var(--danger); border-color: #5a2d2a; }
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 12px) 14px calc(env(safe-area-inset-left) + 12px);
+  padding: calc(var(--sa-t) + 8px) calc(var(--sa-r) + 12px) 14px calc(var(--sa-l) + 12px);
   background: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
 }
 .slotHead { flex: 1; min-width: 0; }
@@ -99,7 +105,7 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 #level {
   --x: 0;
   position: fixed;
-  top: calc(env(safe-area-inset-top) + 92px);
+  top: calc(var(--sa-t) + 92px);
   left: calc((100% - var(--side)) / 2);
   transform: translateX(-50%);
   display: flex;
@@ -149,7 +155,7 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 16px calc(env(safe-area-inset-right) + 12px) calc(env(safe-area-inset-bottom) + 10px) calc(env(safe-area-inset-left) + 12px);
+  padding: 16px calc(var(--sa-r) + 12px) calc(var(--sa-b) + 10px) calc(var(--sa-l) + 12px);
   background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.8) 30%);
 }
 #slotChips {
@@ -258,14 +264,14 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
    .landscape-ui dipasang camera.js saat layar landscape, ATAU saat HP dipegang landscape tetapi tampilan iOS tetap
    potret (kunci rotasi / rotasi tertunda) — kasus kedua ditandai .sideways: lapisan menu (#chrome) diputar sesuai
    posisi HP seperti app Kamera bawaan, sedangkan video tidak diputar (gambarnya sudah benar). */
-.landscape-ui { --side: calc(env(safe-area-inset-left) + 132px); }
+.landscape-ui { --side: calc(var(--sa-l) + 132px); }
 .landscape-ui #stage { inset: 0 0 0 var(--side); }
 .landscape-ui #topbar { left: var(--side); right: 0; }
 /* Sisi yang menempel ke panel tidak perlu jarak safe area (sudah di dalam --side): tombol rapat ke batas panel. */
 .landscape-ui:not(.panel-right) #topbar { padding-left: 12px; }
 /* Sisi seberang: tombol sejajar tepi luar kolom zoom. */
-.landscape-ui #topbar { padding-right: calc(env(safe-area-inset-right) + 8px); }
-.landscape-ui.panel-right #topbar { padding-left: calc(env(safe-area-inset-left) + 8px); }
+.landscape-ui #topbar { padding-right: calc(var(--sa-r) + 8px); }
+.landscape-ui.panel-right #topbar { padding-left: calc(var(--sa-l) + 8px); }
 .landscape-ui #level { left: calc(var(--side) + (100% - var(--side)) / 2); }
 /* Video rapat ke panel kiri (tanpa celah hitam di kiri); sisa ruang hitam di kanan dipakai kolom zoom.
    Bukan object-fit: cover, karena pratinjau harus sama dengan foto 4:3 yang tersimpan. */
@@ -276,7 +282,7 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
   width: var(--side);
   display: flex;
   flex-direction: column;
-  padding: calc(env(safe-area-inset-top) + 8px) 10px calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 10px);
+  padding: calc(var(--sa-t) + 8px) 10px calc(var(--sa-b) + 8px) calc(var(--sa-l) + 10px);
   background: var(--panel);
 }
 /* Slot: dua kolom ringkas agar semua slot terlihat tanpa menggulir. Wajib = garis penuh, opsional = putus-putus. */
@@ -298,9 +304,9 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 /* Zoom: kolom vertikal di area hitam kanan (samping video), di bawah bar atas. */
 .landscape-ui #zoomBar {
   position: fixed;
-  top: calc(env(safe-area-inset-top) + 64px);
-  bottom: calc(env(safe-area-inset-bottom) + 8px);
-  right: calc(env(safe-area-inset-right) + 8px);
+  top: calc(var(--sa-t) + 64px);
+  bottom: calc(var(--sa-b) + 8px);
+  right: calc(var(--sa-r) + 8px);
   z-index: 2;
   flex-direction: column;
   justify-content: center;
@@ -319,7 +325,7 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 .landscape-ui #slotCheck { display: none; }
 
 /* Tangan kanan: panel di kanan, zoom di kiri. */
-.landscape-ui.panel-right { --side: calc(env(safe-area-inset-right) + 132px); }
+.landscape-ui.panel-right { --side: calc(var(--sa-r) + 132px); }
 .landscape-ui.panel-right #stage { inset: 0 var(--side) 0 0; }
 .landscape-ui.panel-right #topbar { left: 0; right: var(--side); padding-right: 12px; }
 .landscape-ui.panel-right #level { left: calc((100% - var(--side)) / 2); }
@@ -327,9 +333,9 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
 .landscape-ui.panel-right #bottombar {
   left: auto;
   right: 0;
-  padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 8px) 10px;
+  padding: calc(var(--sa-t) + 8px) calc(var(--sa-r) + 10px) calc(var(--sa-b) + 8px) 10px;
 }
-.landscape-ui.panel-right #zoomBar { left: calc(env(safe-area-inset-left) + 8px); right: auto; }
+.landscape-ui.panel-right #zoomBar { left: calc(var(--sa-l) + 8px); right: auto; }
 
 /* HP landscape, tampilan potret: putar lapisan menu; elemen fixed di dalamnya mengikuti kotak #chrome yang diputar. */
 .landscape-ui.sideways #stage { inset: 0; }
@@ -344,6 +350,23 @@ a.pill { display: inline-block; color: inherit; text-decoration: none; backgroun
   z-index: 3;
 }
 .sideways #chrome > * { pointer-events: auto; }
+/* Diputar searah jarum jam (--rel 90): kiri lapisan = atas layar, atas = kanan, kanan = bawah, bawah = kiri. */
+.sideways #chrome {
+  --sa-l: env(safe-area-inset-top);
+  --sa-t: env(safe-area-inset-right);
+  --sa-r: env(safe-area-inset-bottom);
+  --sa-b: env(safe-area-inset-left);
+}
+/* Berlawanan jarum jam (--rel -90): kiri lapisan = bawah layar, atas = kiri, kanan = atas, bawah = kanan. */
+.sideways.sideways-ccw #chrome {
+  --sa-l: env(safe-area-inset-bottom);
+  --sa-t: env(safe-area-inset-left);
+  --sa-r: env(safe-area-inset-top);
+  --sa-b: env(safe-area-inset-right);
+}
+/* --side dihitung ulang di dalam lapisan yang diputar agar memakai jarak aman yang sudah dipetakan. */
+.landscape-ui.sideways #chrome { --side: calc(var(--sa-l) + 132px); }
+.landscape-ui.sideways.panel-right #chrome { --side: calc(var(--sa-r) + 132px); }
 
 /* ---------- Layar awal ---------- */
 
@@ -379,7 +402,7 @@ output { color: var(--ink); }
   width: min(560px, 100%);
   max-height: 92dvh;
   margin: auto auto 0;
-  padding: 0 16px calc(env(safe-area-inset-bottom) + 16px);
+  padding: 0 16px calc(var(--sa-b) + 16px);
   overflow-y: auto;
   color: var(--ink);
   background: var(--panel);
@@ -414,7 +437,7 @@ legend + * { clear: both; }
 #toast {
   position: fixed;
   left: 50%;
-  bottom: calc(env(safe-area-inset-bottom) + 170px);
+  bottom: calc(var(--sa-b) + 170px);
   z-index: 20;
   max-width: 90%;
   padding: 10px 14px;
@@ -439,7 +462,7 @@ legend + * { clear: both; }
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   background: rgba(0, 0, 0, 0.96);
-  padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 12px) calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 12px);
+  padding: calc(var(--sa-t) + 8px) calc(var(--sa-r) + 12px) calc(var(--sa-b) + 8px) calc(var(--sa-l) + 12px);
 }
 #gallery[hidden] { display: none; }
 .galleryHead { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding-bottom: 10px; }

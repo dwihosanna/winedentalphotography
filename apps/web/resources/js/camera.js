@@ -931,6 +931,7 @@ function applyLayoutMode() {
   const sideways = !screenLandscape && Math.abs(state.turn.rel) === 90;
   html.classList.toggle('landscape-ui', screenLandscape || sideways);
   html.classList.toggle('sideways', sideways);
+  html.classList.toggle('sideways-ccw', sideways && state.turn.rel < 0);
   html.style.setProperty('--rel', String(sideways ? state.turn.rel : 0));
   // Panel di sisi yang berlawanan dengan kamera depan (seperti app Kamera bawaan): kamera depan di kanan = HP dipegang
   // tangan kiri, panel kiri; kamera depan di kiri = tangan kanan, panel kanan. Sudut 90 = HP diputar berlawanan arah
