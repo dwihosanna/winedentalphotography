@@ -55,7 +55,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/sesi/{session}/unggah', [PhotoController::class, 'upload'])->name('sessions.upload');
         Route::get('/sesi/{session}/foto', [PhotoController::class, 'index'])->name('photos.index');
         Route::post('/sesi/{session}/foto', [PhotoController::class, 'store'])->name('photos.store');
+        Route::delete('/sesi/{session}/foto', [PhotoController::class, 'destroyAll'])->name('photos.destroy-all');
         Route::get('/foto/{photo}', [GalleryController::class, 'show'])->name('photos.show');
+        Route::delete('/foto/{photo}', [PhotoController::class, 'destroy'])->name('photos.destroy');
         Route::get('/foto/{photo}/lihat', [PhotoController::class, 'viewer'])->name('photos.viewer');
         Route::get('/foto/{photo}/tampil', [PhotoController::class, 'image'])->name('photos.image');
         Route::get('/foto/{photo}/ubah', [PhotoEditController::class, 'edit'])->name('photos.edit');

@@ -137,6 +137,7 @@ details.card[open] > summary { margin-bottom: var(--space-3); }
 .archive-status { margin: var(--space-3) var(--space-4); }
 .danger-zone { margin-top: var(--space-5); }
 .btn-danger:disabled { opacity: .5; }
+.danger-text { color: var(--danger); }
 
 /* Penampil PDF dalam aplikasi (report, rontgen PDF). */
 .pdf-page { background: var(--surface-2); }

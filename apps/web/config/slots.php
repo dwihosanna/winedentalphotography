@@ -8,6 +8,8 @@
 // Kontrol (15 Okt 2026): wajib IO-01 s.d. IO-03; oklusal (IO-04/05) dan anterior (IO-06/07) opsional.
 // IO-01 = intraoral kanan, IO-03 = intraoral kiri (ditukar 15 Okt 2026, slots.v2.json 2.3.0).
 // Kasus non-ortho (14 Okt 2026): tahap Sebelum/Sesudah, semua slot opsional; sesi lengkap bila ada minimal 1 foto.
+// 18 Okt 2026: Awal wajib semua slot kecuali FREE (rontgen RX-01/02 ikut wajib); Insersi wajib EO + IO (rontgen
+// dan FREE opsional); Kontrol tetap wajib IO-01 s.d. IO-03. Lepas/Retensi tidak berubah.
 
 $followUp = [
     'EO-01' => false, 'EO-02' => false, 'EO-03' => false,
@@ -39,9 +41,9 @@ return [
         'initial' => [
             'EO-01' => true, 'EO-02' => true, 'EO-03' => true,
             'IO-01' => true, 'IO-02' => true, 'IO-03' => true, 'IO-04' => true, 'IO-05' => true, 'IO-06' => true, 'IO-07' => true,
-            'FREE' => false, 'RX-01' => false, 'RX-02' => false,
+            'FREE' => false, 'RX-01' => true, 'RX-02' => true,
         ],
-        'insertion' => $followUp,
+        'insertion' => array_replace($followUp, ['EO-01' => true, 'EO-02' => true, 'EO-03' => true]),
         'control' => array_replace($followUp, ['IO-04' => false, 'IO-05' => false, 'IO-06' => false, 'IO-07' => false]),
         'debond' => $followUp,
         'retention' => $followUp,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\DeletePhotos;
 use App\Actions\StorePhoto;
 use App\Models\AuditLog;
 use App\Models\Photo;
@@ -128,6 +129,27 @@ class PhotoController extends Controller
             'session_status' => $session->status,
             'missing' => $session->missingRequiredSlots(),
         ], 201);
+    }
+
+    /** Hapus foto satu slot (beserta riwayat retake-nya); slot kembali kosong. */
+    public function destroy(Photo $photo, DeletePhotos $deletePhotos): RedirectResponse
+    {
+        $session = $photo->session;
+        $this->authorize('view', $session->orthoCase->patient);
+
+        $deletePhotos($session, [$photo->slot_code]);
+
+        return redirect()->route('sessions.show', $session)->with('status', "Foto {$photo->slot_code} dihapus.");
+    }
+
+    /** Hapus semua foto sesi; sesinya tetap ada (hapus sesi lewat halaman Ubah sesi). */
+    public function destroyAll(PhotoSession $session, DeletePhotos $deletePhotos): RedirectResponse
+    {
+        $this->authorize('view', $session->orthoCase->patient);
+
+        $count = $deletePhotos($session);
+
+        return redirect()->route('sessions.show', $session)->with('status', "Foto di {$count} slot dihapus.");
     }
 
     /**

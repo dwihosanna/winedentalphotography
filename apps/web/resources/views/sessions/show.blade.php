@@ -36,6 +36,14 @@
             @include('partials.timestamp-toggle')
         </div>
 
+        @if ($photos->isNotEmpty())
+            <form class="row-actions" method="POST" action="{{ route('photos.destroy-all', $session) }}" onsubmit="return confirm('Hapus SEMUA foto di sesi ini ({{ $photos->count() }} slot)? Foto terhapus permanen dan tidak bisa dikembalikan.')">
+                @csrf
+                @method('DELETE')
+                <button class="btn btn-sm btn-danger" type="submit">Hapus semua foto</button>
+            </form>
+        @endif
+
         <ul class="slot-grid">
             @foreach ($slots as $slot)
                 @php($photo = $photos->get($slot->slot_code))
@@ -60,11 +68,18 @@
                             <input type="hidden" name="slot_code" value="{{ $slot->slot_code }}">
                             <input type="hidden" name="source" value="upload">
                             <label class="btn btn-sm btn-ghost">
-                                Unggah
+                                <span>Unggah</span>
                                 <input class="visually-hidden" type="file" name="file" accept="{{ $slot->kind === 'xray' ? 'image/jpeg,image/png,application/pdf' : 'image/jpeg,image/png' }}">
                             </label>
                             <noscript><button class="btn btn-sm" type="submit">Kirim</button></noscript>
                         </form>
+                        @if ($photo)
+                            <form method="POST" action="{{ route('photos.destroy', $photo) }}" onsubmit="return confirm('Hapus foto {{ $slot->slot_code }}? Foto terhapus permanen dan tidak bisa dikembalikan.')">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-ghost danger-text" type="submit">Hapus</button>
+                            </form>
+                        @endif
                     </div>
                 </li>
             @endforeach
@@ -76,11 +91,11 @@
 
 @push('scripts')
     <script>
-        // Unggah per slot: kirim begitu file dipilih.
+        // Unggah per slot: kirim begitu file dipilih. Hanya teks label yang diganti: input file ada di dalam label.
         for (const form of document.querySelectorAll('[data-auto-upload]')) {
             form.querySelector('input[type=file]').addEventListener('change', (e) => {
                 if (!e.target.files.length) return;
-                form.querySelector('label').textContent = 'Mengunggah…';
+                form.querySelector('label span').textContent = 'Mengunggah…';
                 form.submit();
             });
         }

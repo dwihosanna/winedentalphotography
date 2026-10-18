@@ -439,6 +439,36 @@ class SessionPhotoTest extends TestCase
         $this->assertTrue(AuditLog::where('action', 'delete')->where('entity_id', $empty->id)->exists());
     }
 
+    public function test_delete_one_slot_or_all_photos_removes_files_and_frees_storage(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        $session = $this->sessionIn($workspace, Stage::Control, ['control_number' => 1]);
+        foreach (['IO-01', 'IO-02', 'IO-03', 'IO-01', 'EO-02'] as $code) {
+            $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", ['file' => $this->jpeg(), 'slot_code' => $code, 'source' => 'camera'])->assertCreated();
+        }
+        $this->assertSame('complete', $session->fresh()->status);
+        $this->assertNotNull($session->orthoCase->patient->fresh()->avatar_photo_id);
+        $this->actingAs($dentist)->get("/sesi/{$session->id}")->assertSee('Hapus semua foto');
+
+        // Satu slot: foto berlaku + riwayat retake-nya ikut terhapus, sesi jadi draft.
+        $io1 = Photo::withoutGlobalScopes()->where('slot_code', 'IO-01')->get();
+        $this->actingAs($dentist)->delete('/foto/'.$io1->firstWhere('replaced_by_photo_id', null)->id)->assertRedirect("/sesi/{$session->id}");
+        $this->assertSame(0, Photo::withoutGlobalScopes()->where('slot_code', 'IO-01')->count());
+        foreach ($io1 as $photo) {
+            Storage::disk('photos')->assertMissing($photo->original_path);
+            Storage::disk('photos')->assertMissing($photo->thumb_path);
+        }
+        $this->assertSame('draft', $session->fresh()->status);
+        $this->assertSame(2, AuditLog::where('action', 'delete')->count());
+
+        // Semua foto.
+        $this->actingAs($dentist)->delete("/sesi/{$session->id}/foto")->assertRedirect("/sesi/{$session->id}");
+        $this->assertSame(0, Photo::withoutGlobalScopes()->count());
+        $this->assertSame(0, $workspace->fresh()->used_bytes);
+        $this->assertNull($session->orthoCase->patient->fresh()->avatar_photo_id);
+        $this->assertSame([], Storage::disk('photos')->allFiles());
+    }
+
     public function test_session_of_another_workspace_is_not_found(): void
     {
         [$dentist] = $this->dentistWithWorkspace();
@@ -451,5 +481,6 @@ class SessionPhotoTest extends TestCase
         $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", ['file' => $this->jpeg(), 'slot_code' => 'IO-01', 'source' => 'camera'])->assertNotFound();
         $this->actingAs($dentist)->get("/sesi/{$session->id}/ubah")->assertNotFound();
         $this->actingAs($dentist)->delete("/sesi/{$session->id}")->assertNotFound();
+        $this->actingAs($dentist)->delete("/sesi/{$session->id}/foto")->assertNotFound();
     }
 }

@@ -11,7 +11,7 @@ use Database\Seeders\SlotTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** Aturan dokter 13 Okt 2026 (SRS 6.1). */
+/** Aturan dokter 13 Okt 2026 (SRS 6.1), diperbarui 15 dan 18 Okt 2026. */
 class SlotRulesTest extends TestCase
 {
     use RefreshDatabase;
@@ -31,14 +31,20 @@ class SlotRulesTest extends TestCase
         return SlotTemplate::where('stage', $stage)->where('required', true)->where('kind', 'photo')->orderBy('sort_order')->pluck('slot_code')->all();
     }
 
-    public function test_initial_session_requires_eo_and_io(): void
+    public function test_initial_session_requires_every_slot_except_free(): void
     {
         $this->assertSame([...self::EO, ...self::IO], $this->required(Stage::Initial));
+        $this->assertSame(['RX-01', 'RX-02'], SlotTemplate::where('stage', Stage::Initial)->where('kind', 'xray')->where('required', true)->orderBy('sort_order')->pluck('slot_code')->all());
     }
 
-    public function test_follow_up_sessions_require_io_only(): void
+    public function test_insertion_requires_eo_and_io(): void
     {
-        foreach ([Stage::Insertion, Stage::Debond, Stage::Retention] as $stage) {
+        $this->assertSame([...self::EO, ...self::IO], $this->required(Stage::Insertion));
+    }
+
+    public function test_debond_and_retention_require_io_only(): void
+    {
+        foreach ([Stage::Debond, Stage::Retention] as $stage) {
             $this->assertSame(self::IO, $this->required($stage), $stage->value);
             $this->assertSame(3, SlotTemplate::where('stage', $stage)->whereIn('slot_code', self::EO)->where('required', false)->count());
         }
@@ -52,9 +58,9 @@ class SlotRulesTest extends TestCase
         $this->assertSame('Intraoral kiri', SlotTemplate::where('slot_code', 'IO-03')->value('label'));
     }
 
-    public function test_xray_is_optional_in_every_stage(): void
+    public function test_xray_is_optional_except_at_initial(): void
     {
-        $this->assertSame(0, SlotTemplate::where('kind', 'xray')->where('required', true)->count());
+        $this->assertSame(['initial'], SlotTemplate::where('kind', 'xray')->where('required', true)->distinct()->pluck('stage')->map->value->all());
         $this->assertSame(2 * count(Stage::cases()), SlotTemplate::where('kind', 'xray')->count());
     }
 
@@ -97,7 +103,7 @@ class SlotRulesTest extends TestCase
         $session->refreshStatus();
 
         $this->assertSame('draft', $session->status);
-        $this->assertSame(self::EO, $session->missingRequiredSlots());
+        $this->assertSame([...self::EO, 'RX-01', 'RX-02'], $session->missingRequiredSlots());
     }
 
     public function test_non_ortho_stages_have_all_slots_optional(): void
