@@ -10,11 +10,12 @@
 // Kasus non-ortho (14 Okt 2026): tahap Sebelum/Sesudah, semua slot opsional; sesi lengkap bila ada minimal 1 foto.
 // 18 Okt 2026: Awal wajib semua slot kecuali FREE (rontgen RX-01/02 ikut wajib); Insersi wajib EO + IO (rontgen
 // dan FREE opsional); Kontrol tetap wajib IO-01 s.d. IO-03. Lepas/Retensi tidak berubah.
+// 24 Okt 2026: FREE dipecah jadi 3 slot opsional FREE-1 s.d. FREE-3 (Bebas 1/3 s.d. 3/3); foto FREE lama menjadi FREE-1.
 
 $followUp = [
     'EO-01' => false, 'EO-02' => false, 'EO-03' => false,
     'IO-01' => true, 'IO-02' => true, 'IO-03' => true, 'IO-04' => true, 'IO-05' => true, 'IO-06' => true, 'IO-07' => true,
-    'FREE' => false, 'RX-01' => false, 'RX-02' => false,
+    'FREE-1' => false, 'FREE-2' => false, 'FREE-3' => false, 'RX-01' => false, 'RX-02' => false,
 ];
 
 $general = array_map(fn () => false, $followUp);
@@ -31,7 +32,9 @@ return [
         'IO-05' => ['label' => 'Oklusal bawah', 'category' => 'io_occlusal_lower', 'kind' => 'photo'],
         'IO-06' => ['label' => 'Anterior atas', 'category' => 'io_anterior_upper', 'kind' => 'photo'],
         'IO-07' => ['label' => 'Anterior bawah', 'category' => 'io_anterior_lower', 'kind' => 'photo'],
-        'FREE' => ['label' => 'Bebas', 'category' => 'other', 'kind' => 'photo'],
+        'FREE-1' => ['label' => 'Bebas 1/3', 'category' => 'other', 'kind' => 'photo'],
+        'FREE-2' => ['label' => 'Bebas 2/3', 'category' => 'other', 'kind' => 'photo'],
+        'FREE-3' => ['label' => 'Bebas 3/3', 'category' => 'other', 'kind' => 'photo'],
         'RX-01' => ['label' => 'Rontgen panoramik', 'category' => 'xray_panoramic', 'kind' => 'xray'],
         'RX-02' => ['label' => 'Rontgen sefalometri', 'category' => 'xray_cephalometric', 'kind' => 'xray'],
     ],
@@ -41,7 +44,7 @@ return [
         'initial' => [
             'EO-01' => true, 'EO-02' => true, 'EO-03' => true,
             'IO-01' => true, 'IO-02' => true, 'IO-03' => true, 'IO-04' => true, 'IO-05' => true, 'IO-06' => true, 'IO-07' => true,
-            'FREE' => false, 'RX-01' => true, 'RX-02' => true,
+            'FREE-1' => false, 'FREE-2' => false, 'FREE-3' => false, 'RX-01' => true, 'RX-02' => true,
         ],
         'insertion' => array_replace($followUp, ['EO-01' => true, 'EO-02' => true, 'EO-03' => true]),
         'control' => array_replace($followUp, ['IO-04' => false, 'IO-05' => false, 'IO-06' => false, 'IO-07' => false]),
