@@ -9,6 +9,7 @@ use App\Models\Report;
 use App\Models\SlotTemplate;
 use Database\Seeders\SlotTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /** Aturan dokter 13 Okt 2026 (SRS 6.1), diperbarui 15 dan 18 Okt 2026. */
@@ -64,31 +65,32 @@ class SlotRulesTest extends TestCase
         $this->assertSame(2 * count(Stage::cases()), SlotTemplate::where('kind', 'xray')->count());
     }
 
-    public function test_three_free_slots_are_always_optional(): void
+    public function test_free_slot_is_always_optional_and_holds_three_photos(): void
     {
-        $free = ['FREE-1', 'FREE-2', 'FREE-3'];
-        $this->assertSame(0, SlotTemplate::whereIn('slot_code', $free)->where('required', true)->count());
-        $this->assertSame(3 * count(Stage::cases()), SlotTemplate::whereIn('slot_code', $free)->count());
-        $this->assertSame(['Bebas 1/3', 'Bebas 2/3', 'Bebas 3/3'], SlotTemplate::where('stage', Stage::Initial)->whereIn('slot_code', $free)->orderBy('sort_order')->pluck('label')->all());
+        $this->assertSame(0, SlotTemplate::where('slot_code', 'FREE')->where('required', true)->count());
+        $this->assertSame(count(Stage::cases()), SlotTemplate::where('slot_code', 'FREE')->where('max_photos', 3)->count());
+        $this->assertSame(0, SlotTemplate::where('slot_code', '!=', 'FREE')->where('max_photos', '!=', 1)->count());
     }
 
-    public function test_split_migration_moves_old_free_photos_to_first_free_slot(): void
+    public function test_merge_migration_moves_split_free_photos_back_to_free(): void
     {
         [$dentist, $workspace] = $this->dentistWithWorkspace();
         $this->inWorkspace($workspace);
         $session = PhotoSession::factory()->create(['stage' => Stage::Initial]);
-        $photo = Photo::factory()->create(['photo_session_id' => $session->id, 'slot_code' => 'FREE']);
+        $first = Photo::factory()->create(['photo_session_id' => $session->id, 'slot_code' => 'FREE-1']);
+        $second = Photo::factory()->create(['photo_session_id' => $session->id, 'slot_code' => 'FREE-2']);
         $report = Report::create([
             'ortho_case_id' => $session->ortho_case_id, 'template' => 'before_after', 'before_session_id' => $session->id,
-            'after_session_id' => $session->id, 'selected_photos' => ['FREE' => ['before' => $photo->id, 'after' => null]],
+            'after_session_id' => $session->id, 'selected_photos' => ['FREE-1' => ['before' => $first->id, 'after' => null], 'FREE-2' => ['before' => $second->id, 'after' => null]],
             'created_by' => $dentist->id,
         ]);
+        Schema::table('slot_templates', fn ($table) => $table->dropColumn('max_photos'));
 
-        (require database_path('migrations/2026_10_24_050743_split_free_slot_into_three.php'))->up();
+        (require database_path('migrations/2026_10_24_052152_merge_free_slots_into_one_with_three_photos.php'))->up();
 
-        $this->assertSame('FREE-1', $photo->fresh()->slot_code);
-        $this->assertSame(['FREE-1'], array_keys($report->fresh()->selected_photos));
-        $this->assertSame($photo->id, $report->fresh()->selected_photos['FREE-1']['before']);
+        $this->assertSame(['FREE', 'FREE'], [$first->fresh()->slot_code, $second->fresh()->slot_code]);
+        $this->assertSame(['FREE'], array_keys($report->fresh()->selected_photos));
+        $this->assertSame($first->id, $report->fresh()->selected_photos['FREE']['before']);
     }
 
     public function test_session_is_complete_only_when_required_slots_are_filled_and_retakes_do_not_count_twice(): void
@@ -131,7 +133,7 @@ class SlotRulesTest extends TestCase
     {
         foreach ([Stage::Before, Stage::After] as $stage) {
             $this->assertSame(0, SlotTemplate::where('stage', $stage)->where('required', true)->count(), $stage->value);
-            $this->assertSame(15, SlotTemplate::where('stage', $stage)->count(), $stage->value);
+            $this->assertSame(13, SlotTemplate::where('stage', $stage)->count(), $stage->value);
         }
     }
 
@@ -144,7 +146,7 @@ class SlotRulesTest extends TestCase
         $session->refreshStatus();
         $this->assertSame('draft', $session->status);
 
-        Photo::factory()->create(['photo_session_id' => $session->id, 'slot_code' => 'FREE-2']);
+        Photo::factory()->create(['photo_session_id' => $session->id, 'slot_code' => 'FREE']);
         $session->refreshStatus();
         $this->assertSame('complete', $session->status);
     }

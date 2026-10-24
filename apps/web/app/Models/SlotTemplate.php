@@ -7,11 +7,17 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
 /** Slot per tahap + wajib/opsional (SRS 6.1). Konfigurasi global, diisi dari config/slots.php. */
-#[Fillable(['stage', 'slot_code', 'label', 'category', 'kind', 'required', 'sort_order'])]
+#[Fillable(['stage', 'slot_code', 'label', 'category', 'kind', 'required', 'max_photos', 'sort_order'])]
 class SlotTemplate extends Model
 {
     protected function casts(): array
     {
-        return ['stage' => Stage::class, 'required' => 'boolean'];
+        return ['stage' => Stage::class, 'required' => 'boolean', 'max_photos' => 'integer'];
+    }
+
+    /** Slot dengan max_photos > 1 (FREE) menambah foto; slot lain mengganti foto lama lewat retake. */
+    public function holdsMultiple(): bool
+    {
+        return $this->max_photos > 1;
     }
 }

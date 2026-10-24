@@ -469,6 +469,31 @@ class SessionPhotoTest extends TestCase
         $this->assertSame([], Storage::disk('photos')->allFiles());
     }
 
+    public function test_free_slot_holds_three_photos_and_each_can_be_deleted(): void
+    {
+        [$dentist, $workspace] = $this->dentistWithWorkspace();
+        $session = $this->sessionIn($workspace, Stage::Control, ['control_number' => 1]);
+        $upload = fn () => $this->actingAs($dentist)->postJson("/sesi/{$session->id}/foto", ['file' => $this->jpeg(), 'slot_code' => 'FREE', 'source' => 'camera']);
+
+        $ids = [$upload()->assertCreated()->json('id'), $upload()->assertCreated()->json('id'), $upload()->assertCreated()->json('id')];
+        $upload()->assertUnprocessable()->assertJsonValidationErrors('file');
+
+        $free = Photo::withoutGlobalScopes()->where('slot_code', 'FREE')->get();
+        $this->assertCount(3, $free);
+        $this->assertSame(3, $free->whereNull('replaced_by_photo_id')->count());
+        $this->assertFalse(AuditLog::where('action', 'replace')->exists());
+        $page = $this->actingAs($dentist)->get("/sesi/{$session->id}")->assertOk()->assertSee('Bebas · 3/3')->assertSee('Penuh');
+        $this->assertSame(1, substr_count($page->getContent(), '<b>FREE</b>'), 'satu kartu slot FREE berisi 3 foto');
+        $this->assertSame(3, substr_count($page->getContent(), 'aria-label="Hapus foto FREE '));
+        $this->actingAs($dentist)->getJson("/sesi/{$session->id}/foto")->assertJsonPath('photos.*.label', ['Bebas 1/3', 'Bebas 2/3', 'Bebas 3/3']);
+
+        // Hapus satu: dua foto lain tetap, slot bisa diisi lagi.
+        $this->actingAs($dentist)->delete("/foto/{$ids[1]}")->assertRedirect("/sesi/{$session->id}");
+        $this->assertEqualsCanonicalizing([$ids[0], $ids[2]], Photo::withoutGlobalScopes()->where('slot_code', 'FREE')->pluck('id')->all());
+        $this->actingAs($dentist)->get("/sesi/{$session->id}")->assertSee('Bebas · 2/3');
+        $upload()->assertCreated();
+    }
+
     public function test_session_of_another_workspace_is_not_found(): void
     {
         [$dentist] = $this->dentistWithWorkspace();

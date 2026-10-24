@@ -24,14 +24,16 @@ class PhotoController extends Controller
         $this->authorize('view', $session->orthoCase->patient);
 
         $guides = collect(SlotGuides::all()['slots'])->keyBy('code');
-        $filled = $session->currentPhotos()->pluck('slot_code')->all();
+        $counts = $session->currentPhotos()->pluck('slot_code')->countBy();
 
-        // Kamera hanya untuk slot foto; rontgen hanya diunggah (FR-08).
+        // Kamera hanya untuk slot foto; rontgen hanya diunggah (FR-08). Slot FREE terisi bila sudah max_photos foto.
         $slots = $session->slots()->where('kind', 'photo')->values()->map(fn ($slot) => [
             'code' => $slot->slot_code,
             'label' => $slot->label,
             'required' => $slot->required,
-            'filled' => in_array($slot->slot_code, $filled, true),
+            'max' => $slot->max_photos,
+            'count' => $counts->get($slot->slot_code, 0),
+            'filled' => $counts->get($slot->slot_code, 0) >= $slot->max_photos,
         ] + collect($guides->get($slot->slot_code, []))->only(['orientation', 'level', 'mirror', 'checklist', 'overlay'])->all());
 
         $start = $request->query('slot');
@@ -58,19 +60,22 @@ class PhotoController extends Controller
     {
         $this->authorize('view', $session->orthoCase->patient);
 
-        $slots = $session->slots()->pluck('label', 'slot_code');
-        $order = $slots->keys()->flip();
+        $templates = $session->slots()->keyBy('slot_code');
+        $order = $templates->keys()->flip();
         $photos = $session->currentPhotos()->where('mime', 'like', 'image/%')->get()
             ->sortBy(fn (Photo $p) => [$order[$p->slot_code] ?? 99, $p->created_at])
-            ->values()
-            ->map(fn (Photo $p) => [
-                'id' => $p->id,
-                'slot' => $p->slot_code,
-                'label' => $slots[$p->slot_code] ?? $p->slot_code,
-                'thumb' => $p->thumb_path ? $p->url('thumb') : $p->url($p->displayVariant()),
-                'full' => $p->url($p->displayVariant()),
-                'time' => $p->timestampText(),
-            ]);
+            ->values();
+        // Slot FREE: satu slot berisi beberapa foto, diberi nomor 1/3, 2/3, 3/3.
+        $number = $photos->map(fn (Photo $p, int $i) => $photos->take($i + 1)->where('slot_code', $p->slot_code)->count());
+        $photos = $photos->map(fn (Photo $p, int $i) => [
+            'id' => $p->id,
+            'slot' => $p->slot_code,
+            'label' => ($slot = $templates->get($p->slot_code)) === null ? $p->slot_code
+                : $slot->label.($slot->holdsMultiple() ? " {$number[$i]}/{$slot->max_photos}" : ''),
+            'thumb' => $p->thumb_path ? $p->url('thumb') : $p->url($p->displayVariant()),
+            'full' => $p->url($p->displayVariant()),
+            'time' => $p->timestampText(),
+        ]);
 
         return response()->json(['photos' => $photos]);
     }
@@ -79,14 +84,15 @@ class PhotoController extends Controller
     {
         $this->authorize('view', $session->orthoCase->patient);
 
-        $filled = $session->currentPhotos()->pluck('slot_code')->all();
+        $counts = $session->currentPhotos()->pluck('slot_code')->countBy();
 
         return view('sessions.upload', [
             'session' => $session,
             'patient' => $session->orthoCase->patient,
             'slots' => $session->slots()->map(fn ($s) => [
-                'code' => $s->slot_code, 'label' => $s->label, 'required' => $s->required,
-                'kind' => $s->kind, 'filled' => in_array($s->slot_code, $filled, true),
+                'code' => $s->slot_code, 'label' => $s->label, 'required' => $s->required, 'kind' => $s->kind,
+                'max' => $s->max_photos, 'count' => $counts->get($s->slot_code, 0),
+                'filled' => $counts->get($s->slot_code, 0) >= $s->max_photos,
             ])->values(),
         ]);
     }
@@ -131,13 +137,14 @@ class PhotoController extends Controller
         ], 201);
     }
 
-    /** Hapus foto satu slot (beserta riwayat retake-nya); slot kembali kosong. */
+    /** Hapus foto satu slot (beserta riwayat retake-nya); slot kembali kosong. Di slot FREE hanya foto ini yang dihapus. */
     public function destroy(Photo $photo, DeletePhotos $deletePhotos): RedirectResponse
     {
         $session = $photo->session;
         $this->authorize('view', $session->orthoCase->patient);
 
-        $deletePhotos($session, [$photo->slot_code]);
+        $slot = $session->slots()->firstWhere('slot_code', $photo->slot_code);
+        $slot?->holdsMultiple() ? $deletePhotos($session, only: $photo) : $deletePhotos($session, [$photo->slot_code]);
 
         return redirect()->route('sessions.show', $session)->with('status', "Foto {$photo->slot_code} dihapus.");
     }

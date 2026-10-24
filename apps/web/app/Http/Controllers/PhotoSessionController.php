@@ -79,7 +79,7 @@ class PhotoSessionController extends Controller
         $patient = $session->orthoCase->patient;
         $this->authorize('view', $patient);
 
-        $photos = $session->currentPhotos()->get()->keyBy('slot_code');
+        $photos = $session->currentPhotos()->oldest()->get()->groupBy('slot_code');
 
         return view('sessions.show', [
             'session' => $session,

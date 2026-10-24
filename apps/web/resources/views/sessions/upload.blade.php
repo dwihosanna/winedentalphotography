@@ -15,7 +15,7 @@
             Pilih foto
             <input class="visually-hidden" type="file" accept="image/jpeg,image/png,application/pdf" multiple data-files>
         </label>
-        <div class="notice warning" data-conflict hidden>Ada dua file untuk slot yang sama. File terakhir akan menggantikan yang sebelumnya.</div>
+        <div class="notice warning" data-conflict hidden>Ada dua file untuk slot yang sama (FREE muat 3 foto). File terakhir akan menggantikan yang sebelumnya, atau ditolak bila slot FREE sudah penuh.</div>
         <ul class="upload-list" data-list></ul>
         <button class="btn btn-primary btn-block" type="button" data-submit hidden>Unggah semua</button>
         <a class="btn btn-ghost btn-block" href="{{ route('sessions.show', $session) }}" data-done hidden>Kembali ke sesi</a>

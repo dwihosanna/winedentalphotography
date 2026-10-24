@@ -20,7 +20,7 @@ use Throwable;
 
 /**
  * Simpan satu foto/rontgen ke slot sesi; dipakai kamera (FR-06) dan unggah (FR-07, FR-08).
- * File asli disimpan sekali dan tidak pernah ditimpa; retake membuat baris baru (FR-10).
+ * File asli disimpan sekali dan tidak pernah ditimpa; retake membuat baris baru (FR-10). Slot FREE menampung beberapa foto.
  */
 class StorePhoto
 {
@@ -68,7 +68,12 @@ class StorePhoto
                     throw ValidationException::withMessages(['file' => 'Penyimpanan akun Free (5 GB) penuh. Foto lama tetap bisa dilihat dan diekspor; ajukan Premium untuk menambah.']);
                 }
 
-                $previous = $session->currentPhotos()->where('slot_code', $slot->slot_code)->lockForUpdate()->first();
+                // Slot multi-foto (FREE) menambah foto sampai batasnya; slot lain mengganti foto lama (retake).
+                $current = $session->currentPhotos()->where('slot_code', $slot->slot_code)->lockForUpdate()->get();
+                if ($slot->holdsMultiple() && $current->count() >= $slot->max_photos) {
+                    throw ValidationException::withMessages(['file' => "Slot {$slot->slot_code} sudah berisi {$slot->max_photos} foto. Hapus salah satu dulu untuk menambah foto."]);
+                }
+                $previous = $slot->holdsMultiple() ? null : $current->first();
 
                 $photo = new Photo([
                     'photo_session_id' => $session->id,

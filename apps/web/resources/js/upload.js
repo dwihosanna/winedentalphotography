@@ -18,11 +18,11 @@ submit.addEventListener('click', uploadAll);
 
 function addItem(file) {
   const isPdf = file.type === 'application/pdf';
-  const taken = new Set(items.map((i) => i.select.value));
-  // Saran slot: slot kosong berikutnya yang cocok jenisnya (PDF hanya untuk rontgen).
+  // Saran slot: slot kosong berikutnya yang cocok jenisnya (PDF hanya untuk rontgen). Slot FREE muat beberapa foto.
   const fit = (s) => (isPdf ? s.kind === 'xray' : true);
-  const suggestion = config.slots.find((s) => fit(s) && !s.filled && !taken.has(s.code))
-    ?? config.slots.find((s) => fit(s) && !taken.has(s.code));
+  const free = (s) => room(s) > pending(s.code);
+  const suggestion = config.slots.find((s) => fit(s) && !s.filled && free(s))
+    ?? config.slots.find((s) => fit(s) && s.max === 1 && !pending(s.code));
 
   const li = document.createElement('li');
   li.className = 'upload-item';
@@ -37,7 +37,8 @@ function addItem(file) {
   select.append(new Option('Lewati file ini', ''));
   for (const s of config.slots) {
     if (!fit(s)) continue;
-    select.append(new Option(`${s.code} ${s.label}${s.filled ? ' (ganti foto)' : ''}`, s.code));
+    const note = s.max > 1 ? ` (${s.count}/${s.max})` : s.filled ? ' (ganti foto)' : '';
+    select.append(new Option(`${s.code} ${s.label}${note}`, s.code));
   }
   select.value = suggestion?.code ?? '';
   select.addEventListener('change', refresh);
@@ -48,9 +49,18 @@ function addItem(file) {
   items.push({ file, li, select, state, done: false });
 }
 
+/* Sisa tempat di slot: slot biasa 1 (foto baru mengganti), slot FREE sampai max dikurangi foto yang sudah ada. */
+function room(slot) {
+  return slot.max > 1 ? slot.max - slot.count : 1;
+}
+
+function pending(code) {
+  return items.filter((i) => !i.done && i.select.value === code).length;
+}
+
 function refresh() {
   const codes = items.filter((i) => !i.done && i.select.value).map((i) => i.select.value);
-  conflict.hidden = new Set(codes).size === codes.length;
+  conflict.hidden = config.slots.every((s) => pending(s.code) <= room(s));
   submit.hidden = codes.length === 0;
 }
 
@@ -70,6 +80,8 @@ async function uploadAll() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(firstError(json) || `Gagal (HTTP ${res.status})`);
       item.done = true;
+      const slot = config.slots.find((s) => s.code === item.select.value);
+      if (slot.max > 1) slot.count++;
       item.li.classList.add('done');
       item.select.disabled = true;
       item.state.textContent = json.exif_date_mismatch ? 'Terunggah. Tanggal foto jauh dari tanggal sesi; periksa sesinya.' : 'Terunggah';

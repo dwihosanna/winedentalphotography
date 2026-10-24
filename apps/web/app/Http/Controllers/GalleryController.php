@@ -96,8 +96,21 @@ class GalleryController extends Controller
             'case' => $session->orthoCase,
             'patient' => $patient,
             'slot' => config("slots.slots.{$photo->slot_code}"),
-            'versions' => Photo::where('photo_session_id', $session->id)->where('slot_code', $photo->slot_code)->count(),
+            'versions' => $this->versions($photo),
         ]);
+    }
+
+    /** Foto ini ditambah foto lama yang (berantai) digantikannya; slot FREE berisi beberapa foto yang bukan retake. */
+    private function versions(Photo $photo): int
+    {
+        $previous = Photo::where('photo_session_id', $photo->photo_session_id)->where('slot_code', $photo->slot_code)
+            ->whereNotNull('replaced_by_photo_id')->pluck('replaced_by_photo_id', 'id');
+        $chain = [$photo->id];
+        while ($older = $previous->filter(fn ($by) => in_array($by, $chain, true))->keys()->diff($chain)->all()) {
+            $chain = [...$chain, ...$older];
+        }
+
+        return count($chain);
     }
 
     /** @return Builder<PhotoSession> */

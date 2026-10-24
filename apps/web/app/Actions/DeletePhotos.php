@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Photo;
 use App\Models\PhotoSession;
 use App\Models\Workspace;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -17,16 +18,21 @@ class DeletePhotos
 {
     /**
      * @param  list<string>|null  $slotCodes  null = semua slot sesi
+     * @param  Photo|null  $only  hanya foto ini beserta riwayat retake-nya (satu foto di slot multi-foto FREE)
      * @return int jumlah slot yang dikosongkan
      */
-    public function __invoke(PhotoSession $session, ?array $slotCodes = null): int
+    public function __invoke(PhotoSession $session, ?array $slotCodes = null, ?Photo $only = null): int
     {
         $files = [];
 
-        $count = DB::transaction(function () use ($session, $slotCodes, &$files) {
+        $count = DB::transaction(function () use ($session, $slotCodes, $only, &$files) {
             $photos = $session->photos()
                 ->when($slotCodes !== null, fn ($q) => $q->whereIn('slot_code', $slotCodes))
+                ->when($only !== null, fn ($q) => $q->where('slot_code', $only->slot_code))
                 ->lockForUpdate()->get();
+            if ($only !== null) {
+                $photos = $this->withRetakeHistory($photos, $only);
+            }
             if ($photos->isEmpty()) {
                 return 0;
             }
@@ -60,5 +66,22 @@ class DeletePhotos
         }
 
         return $count;
+    }
+
+    /**
+     * Foto ini dan foto-foto lama yang (berantai) digantikannya.
+     *
+     * @param  Collection<int, Photo>  $slotPhotos
+     * @return Collection<int, Photo>
+     */
+    private function withRetakeHistory(Collection $slotPhotos, Photo $photo): Collection
+    {
+        $ids = [$photo->id];
+        do {
+            $before = count($ids);
+            $ids = array_unique([...$ids, ...$slotPhotos->whereIn('replaced_by_photo_id', $ids)->modelKeys()]);
+        } while (count($ids) > $before);
+
+        return $slotPhotos->whereIn('id', $ids)->values();
     }
 }

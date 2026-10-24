@@ -238,8 +238,8 @@ async function openGallery() {
     q.previewUrl ??= URL.createObjectURL(q.blob);
     return { slot: q.slot.code, label: q.slot.label, thumb: q.previewUrl, full: q.previewUrl, time: 'mengunggah', pending: true };
   });
-  // Foto antrean menggantikan foto server di slot yang sama (retake yang belum terunggah).
-  const pendingSlots = new Set(pending.map((p) => p.slot));
+  // Foto antrean menggantikan foto server di slot yang sama (retake yang belum terunggah); slot FREE menambah.
+  const pendingSlots = new Set(pending.filter((p) => !isMulti(state.slots.find((s) => s.code === p.slot))).map((p) => p.slot));
   const order = state.slots.map((s) => s.code);
   gallery.items = [...server.filter((p) => !pendingSlots.has(p.slot)), ...pending]
     .sort((a, b) => order.indexOf(a.slot) - order.indexOf(b.slot));
@@ -257,7 +257,8 @@ function renderGalleryGrid() {
     b.className = item.pending ? 'pending' : '';
     b.setAttribute('aria-label', `${item.slot} ${item.label}`);
     const img = Object.assign(document.createElement('img'), { src: item.thumb, alt: '', loading: 'lazy' });
-    const cap = Object.assign(document.createElement('span'), { textContent: `${item.slot} · ${item.pending ? '↑' : item.time.slice(-5)}` });
+    const part = /\d+\/\d+$/.exec(item.label)?.[0]; // nomor foto di slot FREE (1/3, 2/3, 3/3)
+    const cap = Object.assign(document.createElement('span'), { textContent: `${item.slot}${part ? ` ${part}` : ''} · ${item.pending ? '↑' : item.time.slice(-5)}` });
     b.append(img, cap);
     b.addEventListener('click', () => showGalleryPhoto(i));
     return b;
@@ -500,7 +501,7 @@ async function setZoomX(x, remember = true) {
 
 function selectSlot(code) {
   state.slot = state.slots.find((s) => s.code === code) || state.slots[0];
-  el.slotTitle.textContent = `${state.slot.code} ${state.slot.label}`;
+  el.slotTitle.textContent = `${state.slot.code} ${state.slot.label}${isMulti(state.slot) ? ` ${Math.min(state.slot.count + 1, state.slot.max)}/${state.slot.max}` : ''}`;
   el.slotCheck.textContent = (state.slot.checklist || []).join('; ');
   for (const b of el.slotChips.children) b.setAttribute('aria-pressed', String(b.dataset.code === state.slot.code));
   el.level.hidden = !(state.level.on && state.slot.level);
@@ -509,6 +510,11 @@ function selectSlot(code) {
   if (state.focus.locked) unlockFocus(); // slot lain = jarak objek lain; kunci ulang setelah posisi pas
   const saved = state.zoomBySlot[state.slot.code];
   if (saved != null && state.track) setZoomX(saved, false);
+}
+
+/* Slot FREE menampung beberapa foto (max); slot lain satu foto, retake menggantikan. */
+function isMulti(slot) {
+  return (slot?.max ?? 1) > 1;
 }
 
 /* Slot wajib berikutnya yang masih kosong, lalu slot kosong mana pun; null bila semua terisi. */
@@ -544,7 +550,8 @@ function renderChips() {
     b.classList.toggle('done', !!s.filled);
     b.classList.toggle('optional', !s.required);
     b.append(Object.assign(document.createElement('span'), { textContent: s.code }));
-    b.append(Object.assign(document.createElement('small'), { textContent: s.filled ? '✓' : s.required ? 'wajib' : 'opsional' }));
+    const progress = isMulti(s) && s.count ? `${s.count}/${s.max}` : null;
+    b.append(Object.assign(document.createElement('small'), { textContent: s.filled ? '✓' : progress ?? (s.required ? 'wajib' : 'opsional') }));
     b.addEventListener('click', () => selectSlot(s.code));
     return b;
   }));
@@ -731,8 +738,10 @@ async function capture() {
     flash();
 
     // Tandai terisi (optimistis) lalu lanjut ke slot kosong berikutnya, seperti wizard (SRS 6.4).
-    slot.filled = true;
-    const next = nextEmptySlot();
+    // Slot FREE tetap dipilih sampai jumlah fotonya penuh (1/3, 2/3, 3/3).
+    if (isMulti(slot)) slot.count = Math.min(slot.count + 1, slot.max);
+    slot.filled = !isMulti(slot) || slot.count >= slot.max;
+    const next = slot.filled ? nextEmptySlot() : slot;
     renderChips();
     if (next) selectSlot(next.code);
     else toast('Semua slot terisi. Ketuk Selesai bila foto sudah terunggah.');
@@ -763,8 +772,10 @@ async function processQueue(manual = false) {
         item.error = e.message;
         if (e.permanent) {
           releasePreview(state.queue.shift());
+          if (isMulti(item.slot)) item.slot.count = Math.max(item.slot.count - 1, 0);
           item.slot.filled = false;
           renderChips();
+          if (item.slot === state.slot) selectSlot(item.slot.code);
           toast(`${item.slot.code} tidak tersimpan: ${e.message}`);
           continue;
         }
